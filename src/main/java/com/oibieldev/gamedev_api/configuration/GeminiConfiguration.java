@@ -16,8 +16,6 @@ public class GeminiConfiguration {
             @Value("${gemini.api.base-url}") String _baseUrl,
             @Value("${gemini.api.key}") String _key
     ) {
-        System.out.println("API-KEY: " + _key);
-
         return RestClient.builder()
                 .baseUrl(_baseUrl)
                 .defaultHeader("x-goog-api-key", _key)
