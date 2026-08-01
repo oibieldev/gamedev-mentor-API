@@ -1,0 +1,17 @@
+{"properties": [
+  {
+    "name": "gemini.api.model",
+    "type": "java.lang.String",
+    "description": "A description for 'gemini.api.model'"
+  },
+  {
+    "name": "gemini.api.key",
+    "type": "java.lang.String",
+    "description": "A description for 'gemini.api.key'"
+  },
+  {
+    "name": "gemini.api.base-url",
+    "type": "java.lang.String",
+    "description": "A description for 'gemini.api.base-url'"
+  }
+]}
