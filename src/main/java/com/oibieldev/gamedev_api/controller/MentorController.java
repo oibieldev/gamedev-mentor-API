@@ -2,14 +2,16 @@ package com.oibieldev.gamedev_api.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import lombok.RequiredArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.oibieldev.gamedev_api.dto.mentor.MentorRequest;
 import com.oibieldev.gamedev_api.dto.mentor.MentorResponse;
 import com.oibieldev.gamedev_api.service.MentorService;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
@@ -20,10 +22,13 @@ public class MentorController {
 
     @PostMapping("/chat")
     public ResponseEntity<MentorResponse> postChatMethod(
-        @RequestBody MentorRequest _request){
-            String answer = service.getGeminiAnswer(_request.prompt());
+        @RequestPart MentorRequest _request,
+        @RequestPart (value = "file", required = false) MultipartFile _file){
 
-            MentorResponse response = new MentorResponse(answer);
+        String answer;
+        answer = service.getGeminiAnswer(_request.prompt(), _file);
+
+        MentorResponse response = new MentorResponse(answer);
         return ResponseEntity.ok(response);
     }
     
