@@ -22,11 +22,11 @@ public class MentorController {
 
     @PostMapping("/chat")
     public ResponseEntity<MentorResponse> postChatMethod(
-        @RequestPart MentorRequest _request,
+        @RequestPart ("prompt") String _prompt,
         @RequestPart (value = "file", required = false) MultipartFile _file){
 
         String answer;
-        answer = service.getGeminiAnswer(_request.prompt(), _file);
+        answer = service.getGeminiAnswer(_prompt, _file);
 
         MentorResponse response = new MentorResponse(answer);
         return ResponseEntity.ok(response);
