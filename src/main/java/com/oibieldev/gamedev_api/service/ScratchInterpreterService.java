@@ -3,6 +3,11 @@ package com.oibieldev.gamedev_api.service;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipEntry;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -14,10 +19,42 @@ public class ScratchInterpreterService {
     public String extractProjectJson(MultipartFile _file){
         this.validateFile(_file);
 
-        
+        String json = "";
 
+        try{
+            ZipInputStream zipInputStream = new ZipInputStream(_file.getInputStream());
 
-        return "";
+            ZipEntry entry = zipInputStream.getNextEntry();
+            while(entry != null){
+
+                if("project.json".equals(entry.getName())){
+                    json = this.convertJsonToString(zipInputStream);
+                    break;
+                }
+                
+                entry = zipInputStream.getNextEntry();
+            }
+
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+
+        return json;
+    }
+
+    private String convertJsonToString(ZipInputStream _json){
+            String out = "";
+
+            byte[] jsonBytes = null;
+            try{
+                jsonBytes = _json.readAllBytes();
+                out = new String(jsonBytes, StandardCharsets.UTF_8);
+                
+            }catch( IOException exception ){
+                throw new IllegalStateException("Não foi possível ler o projeto Scratch. ", exception); 
+            }
+
+            return out;
     }
 
 
