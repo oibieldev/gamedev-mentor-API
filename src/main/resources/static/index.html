@@ -734,8 +734,8 @@
         <div class="eyebrow">Mentoria assistida por IA</div>
         <h1 id="hero-title">Entenda seu <span>jogo.</span></h1>
         <p class="intro">
-          Envie seu projeto Scratch, descreva a sua dúvida e receba uma orientação
-          clara para investigar o código, corrigir problemas e continuar aprendendo.
+          Descreva a sua dúvida e, se quiser, envie também o projeto Scratch para
+          receber uma orientação com mais contexto sobre o seu código.
         </p>
         <div class="stack" aria-label="Tecnologias do projeto">
           <span>JAVA</span>
@@ -769,12 +769,12 @@
 
             <div class="field">
               <div class="label-row">
-                <span class="field-label">Projeto Scratch</span>
+                <span class="field-label">Projeto Scratch <span class="field-help">(opcional)</span></span>
                 <span class="field-help">.sb3 · máximo 10 MB</span>
               </div>
 
               <label class="drop-zone" id="drop-zone" for="file">
-                <input class="file-input" id="file" name="file" type="file" accept=".sb3,application/x.scratch.sb3" required>
+                <input class="file-input" id="file" name="file" type="file" accept=".sb3,application/x.scratch.sb3">
                 <span class="file-icon">SB3</span>
                 <span class="file-copy">
                   <strong id="file-name">Arraste seu projeto aqui</strong>
@@ -825,8 +825,8 @@
       </article>
       <article class="feature">
         <span class="feature-number">02 / PROJETO</span>
-        <h2>Envie o arquivo .sb3</h2>
-        <p>A API abre o pacote com segurança e extrai o project.json para compreender os blocos.</p>
+        <h2>Adicione contexto, se precisar</h2>
+        <p>Quando você envia um .sb3, a API extrai o project.json para compreender os blocos.</p>
       </article>
       <article class="feature">
         <span class="feature-number">03 / MENTORIA</span>
@@ -910,14 +910,13 @@
       const apiUrl = apiUrlInput.value.trim();
 
       if (!prompt) return showError("Escreva uma pergunta para o mentor.");
-      if (!projectFile) return showError("Selecione um projeto Scratch no formato .sb3.");
-      if (!projectFile.name.toLowerCase().endsWith(".sb3")) return showError("O arquivo precisa ter a extensão .sb3.");
-      if (projectFile.size > MAX_FILE_SIZE) return showError("O arquivo deve ter no máximo 10 MB.");
+      if (projectFile && !projectFile.name.toLowerCase().endsWith(".sb3")) return showError("O arquivo precisa ter a extensão .sb3.");
+      if (projectFile && projectFile.size > MAX_FILE_SIZE) return showError("O arquivo deve ter no máximo 10 MB.");
       if (!apiUrl) return showError("Informe o endereço da API.");
 
       const formData = new FormData();
       formData.append("prompt", prompt);
-      formData.append("file", projectFile);
+      if (projectFile) formData.append("file", projectFile);
 
       const controller = new AbortController();
       const timeout = window.setTimeout(() => controller.abort(), 90000);
