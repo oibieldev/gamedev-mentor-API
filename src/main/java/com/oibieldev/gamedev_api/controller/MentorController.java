@@ -27,7 +27,7 @@ public class MentorController {
         @RequestPart (value = "file", required = false) MultipartFile _file){
 
         String answer;
-        answer = service.getGeminiAnswer(_prompt, _file);
+        answer = service.getMentorResponse(_prompt, _file);
 
         MentorResponse response = new MentorResponse(answer);
         return ResponseEntity.ok(response);
