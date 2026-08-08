@@ -21,8 +21,8 @@ public class ScratchInterpreterService {
 
         String json = "";
 
-        try{
-            ZipInputStream zipInputStream = new ZipInputStream(_file.getInputStream());
+        try(ZipInputStream zipInputStream =
+         new ZipInputStream(_file.getInputStream())){
 
             ZipEntry entry = zipInputStream.getNextEntry();
             while(entry != null){
@@ -60,7 +60,8 @@ public class ScratchInterpreterService {
     private void validateFile(MultipartFile _file) {
 
         if (_file == null || _file.isEmpty()) {
-            throw new IllegalArgumentException("O arquivo está vazio.");
+            throw new IllegalArgumentException(
+                "O arquivo está vazio.");
         }
 
         if (_file.getSize() > MAX_FILE_SIZE) {
