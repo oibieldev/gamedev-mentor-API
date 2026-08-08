@@ -43,18 +43,17 @@ public class ScratchInterpreterService {
     }
 
     private String convertJsonToString(ZipInputStream _json){
-            String out = "";
 
-            byte[] jsonBytes = null;
+
+            byte[] jsonBytes;
             try{
                 jsonBytes = _json.readAllBytes();
-                out = new String(jsonBytes, StandardCharsets.UTF_8);
+                return new String(jsonBytes, StandardCharsets.UTF_8);
                 
             }catch( IOException exception ){
                 throw new IllegalStateException("Não foi possível ler o projeto Scratch. ", exception); 
             }
 
-            return out;
     }
 
 
