@@ -38,8 +38,12 @@ public class ScratchInterpreterService implements ProjectInterpreter{
                 entry = zipInputStream.getNextEntry();
             }
 
-        }catch(Exception e){
-            e.printStackTrace();
+        } catch (IOException exception) {
+            throw new IllegalStateException(
+                "Não foi possível ler o projeto Construct 3. Exception: "
+                 + exception.getMessage(), 
+                 exception
+                );    
         }
 
         return json;
