@@ -13,27 +13,28 @@ import lombok.RequiredArgsConstructor;
 @Service
 public class ProjectInterpreterService {
         private final long MAX_FILE_SIZE = 10 * 1024 * 1024;
-
-        private ProjectInterpreter interpreter;
-        private ScratchInterpreterService scratchInterpreterService;
-        private ConstructInterpreterService constructInterpreterService;
+        private final ScratchInterpreterService scratchInterpreterService;
+        private final ConstructInterpreterService constructInterpreterService;
 
 
         public String extractProjectJson(MultipartFile _file) {
             this.validateFile(_file);
-            String fileName = _file.getOriginalFilename();
-            String fileExtension = fileName.substring(fileName.lastIndexOf(".") + 1);
 
-            interpreter = switch (fileExtension.toLowerCase()) {
+            String fileName = _file.getOriginalFilename();
+            if (fileName == null || !fileName.contains(".")) {
+                throw new IllegalArgumentException(
+                "Não foi possível identificar a extensão do arquivo."
+                );
+
+            }
+            String fileExtension = fileName.substring(fileName.lastIndexOf(".") + 1);
+            ProjectInterpreter interpreter = switch (fileExtension.toLowerCase()) {
                 case "sb3" -> scratchInterpreterService;
                 case "c3p" -> constructInterpreterService;
-                default -> null;
-            };
-
-            if (interpreter == null) {
+                default -> 
                 throw new IllegalArgumentException(
                         "Não há um interpretador disponível para a extensão de arquivo: " + fileExtension);
-            }
+            };
 
             return interpreter.interpret(_file);
         }
