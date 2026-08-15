@@ -13,10 +13,9 @@ public class MentorService {
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
 
     private final TextGenerationClient textClient;
-    public final ScratchInterpreterService scratchInterpreterService;
+    private final ScratchInterpreterService scratchInterpreterService;
 
-    public String getGeminiAnswer(String _prompt, MultipartFile _file){
-        String out = "";
+    public String getMentorResponse(String _prompt, MultipartFile _file){
         String tempPrompt = 
                 """
                 Atue como um mentor, analisando a pergunta do aluno e o projeto dele.
@@ -29,21 +28,16 @@ public class MentorService {
                 %s
                 """.formatted(_prompt);
 
+        if(_file == null || _file.isEmpty()) return textClient.generateResponse(tempPrompt) ;
+        if(_file.getSize() > MAX_FILE_SIZE) throw new IllegalArgumentException("Arquivo muito grande!");
 
+        
+        String projectJson = scratchInterpreterService.extractProjectJson(_file);
+        String fullPrompt =  tempPrompt + "\n\n PROJETO SCRATCH EM JSON DO ALUNO: \n\n" + projectJson;
 
-        if(_file == null || _file.isEmpty()) out = textClient.generateResponse(tempPrompt) ;
-        else{
-            if(_file.getSize() > MAX_FILE_SIZE) throw new IllegalArgumentException("Arquivo muito grande!");
+        return textClient.generateResponse(fullPrompt);
+        
 
-            
-            String projectJson = scratchInterpreterService.extractProjectJson(_file);
-            String fullPrompt =  tempPrompt + "\n\n PROJETO SCRATCH EM JSON DO ALUNO: \n\n" + projectJson;
-
-            out = textClient.generateResponse(fullPrompt);
-        }
-
-
-        return out;
     }
 
 }

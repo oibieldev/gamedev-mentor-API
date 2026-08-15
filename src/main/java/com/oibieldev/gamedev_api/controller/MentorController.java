@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.oibieldev.gamedev_api.dto.mentor.MentorRequest;
 import com.oibieldev.gamedev_api.dto.mentor.MentorResponse;
 import com.oibieldev.gamedev_api.service.MentorService;
 
@@ -23,12 +22,12 @@ public class MentorController {
     private final MentorService service;
 
     @PostMapping("/chat")
-    public ResponseEntity<MentorResponse> postChatMethod(
+    public ResponseEntity<MentorResponse> chat(
         @RequestPart ("prompt") String _prompt,
         @RequestPart (value = "file", required = false) MultipartFile _file){
 
         String answer;
-        answer = service.getGeminiAnswer(_prompt, _file);
+        answer = service.getMentorResponse(_prompt, _file);
 
         MentorResponse response = new MentorResponse(answer);
         return ResponseEntity.ok(response);

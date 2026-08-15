@@ -21,8 +21,8 @@ public class ScratchInterpreterService {
 
         String json = "";
 
-        try{
-            ZipInputStream zipInputStream = new ZipInputStream(_file.getInputStream());
+        try(ZipInputStream zipInputStream =
+         new ZipInputStream(_file.getInputStream())){
 
             ZipEntry entry = zipInputStream.getNextEntry();
             while(entry != null){
@@ -43,25 +43,25 @@ public class ScratchInterpreterService {
     }
 
     private String convertJsonToString(ZipInputStream _json){
-            String out = "";
 
-            byte[] jsonBytes = null;
+
+            byte[] jsonBytes;
             try{
                 jsonBytes = _json.readAllBytes();
-                out = new String(jsonBytes, StandardCharsets.UTF_8);
+                return new String(jsonBytes, StandardCharsets.UTF_8);
                 
             }catch( IOException exception ){
                 throw new IllegalStateException("Não foi possível ler o projeto Scratch. ", exception); 
             }
 
-            return out;
     }
 
 
     private void validateFile(MultipartFile _file) {
 
         if (_file == null || _file.isEmpty()) {
-            throw new IllegalArgumentException("O arquivo está vazio.");
+            throw new IllegalArgumentException(
+                "O arquivo está vazio.");
         }
 
         if (_file.getSize() > MAX_FILE_SIZE) {
