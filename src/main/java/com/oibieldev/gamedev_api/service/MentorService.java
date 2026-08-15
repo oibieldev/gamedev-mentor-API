@@ -13,7 +13,7 @@ public class MentorService {
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
 
     private final TextGenerationClient textClient;
-    private final ScratchInterpreterService scratchInterpreterService;
+    private final ProjectInterpreterService ProjectInterpreterService;
 
     public String getMentorResponse(String _prompt, MultipartFile _file){
         String tempPrompt = 
@@ -32,8 +32,8 @@ public class MentorService {
         if(_file.getSize() > MAX_FILE_SIZE) throw new IllegalArgumentException("Arquivo muito grande!");
 
         
-        String projectJson = scratchInterpreterService.extractProjectJson(_file);
-        String fullPrompt =  tempPrompt + "\n\n PROJETO SCRATCH EM JSON DO ALUNO: \n\n" + projectJson;
+        String projectJson = ProjectInterpreterService.extractProjectJson(_file);
+        String fullPrompt =  tempPrompt + "\n\n PROJETO "+ _file.getOriginalFilename() +" EM JSON DO ALUNO: \n\n" + projectJson;
 
         return textClient.generateResponse(fullPrompt);
         
