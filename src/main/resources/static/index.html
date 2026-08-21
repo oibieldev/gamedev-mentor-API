@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Envie um projeto Scratch e converse com o GameDev Mentor.">
-  <title>GameDev Mentor — Analise seu projeto Scratch</title>
+  <meta name="description" content="Envie um projeto Scratch ou Construct 3 e converse com o GameDev Mentor.">
+  <title>GameDev Mentor — Analise seu projeto</title>
   <style>
     :root {
       color-scheme: dark;
@@ -734,13 +734,14 @@
         <div class="eyebrow">Mentoria assistida por IA</div>
         <h1 id="hero-title">Entenda seu <span>jogo.</span></h1>
         <p class="intro">
-          Descreva a sua dúvida e, se quiser, envie também o projeto Scratch para
+          Descreva a sua dúvida e, se quiser, envie também um projeto Scratch ou Construct 3 para
           receber uma orientação com mais contexto sobre o seu código.
         </p>
         <div class="stack" aria-label="Tecnologias do projeto">
           <span>JAVA</span>
           <span>SPRING BOOT</span>
           <span>SCRATCH .SB3</span>
+          <span>CONSTRUCT 3 .C3P</span>
           <span>GEMINI API</span>
         </div>
       </div>
@@ -769,13 +770,13 @@
 
             <div class="field">
               <div class="label-row">
-                <span class="field-label">Projeto Scratch <span class="field-help">(opcional)</span></span>
-                <span class="field-help">.sb3 · máximo 10 MB</span>
+                <span class="field-label">Projeto Scratch ou Construct 3 <span class="field-help">(opcional)</span></span>
+                <span class="field-help">.sb3 ou .c3p · máximo 10 MB</span>
               </div>
 
               <label class="drop-zone" id="drop-zone" for="file">
-                <input class="file-input" id="file" name="file" type="file" accept=".sb3,application/x.scratch.sb3">
-                <span class="file-icon">SB3</span>
+                <input class="file-input" id="file" name="file" type="file" accept=".sb3,.c3p,application/x.scratch.sb3">
+                <span class="file-icon" id="file-icon">PROJ</span>
                 <span class="file-copy">
                   <strong id="file-name">Arraste seu projeto aqui</strong>
                   <small id="file-meta">ou clique para selecionar um arquivo</small>
@@ -826,7 +827,7 @@
       <article class="feature">
         <span class="feature-number">02 / PROJETO</span>
         <h2>Adicione contexto, se precisar</h2>
-        <p>Quando você envia um .sb3, a API extrai o project.json para compreender os blocos.</p>
+        <p>Ao enviar um .sb3 ou .c3p, a API extrai os arquivos do projeto para compreender sua lógica.</p>
       </article>
       <article class="feature">
         <span class="feature-number">03 / MENTORIA</span>
@@ -843,11 +844,16 @@
 
   <script>
     const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    const PROJECT_TYPES = {
+      sb3: "Scratch",
+      c3p: "Construct 3"
+    };
     const form = document.querySelector("#mentor-form");
     const promptInput = document.querySelector("#prompt");
     const promptCount = document.querySelector("#prompt-count");
     const fileInput = document.querySelector("#file");
     const dropZone = document.querySelector("#drop-zone");
+    const fileIcon = document.querySelector("#file-icon");
     const fileName = document.querySelector("#file-name");
     const fileMeta = document.querySelector("#file-meta");
     const apiUrlInput = document.querySelector("#api-url");
@@ -910,7 +916,7 @@
       const apiUrl = apiUrlInput.value.trim();
 
       if (!prompt) return showError("Escreva uma pergunta para o mentor.");
-      if (projectFile && !projectFile.name.toLowerCase().endsWith(".sb3")) return showError("O arquivo precisa ter a extensão .sb3.");
+      if (projectFile && !getProjectType(projectFile)) return showError("O arquivo precisa ter a extensão .sb3 ou .c3p.");
       if (projectFile && projectFile.size > MAX_FILE_SIZE) return showError("O arquivo deve ter no máximo 10 MB.");
       if (!apiUrl) return showError("Informe o endereço da API.");
 
@@ -1082,14 +1088,27 @@
 
     function setSelectedFile(file) {
       clearError();
-      fileName.textContent = file.name;
-      fileMeta.textContent = `${formatFileSize(file.size)} · projeto Scratch`;
+      const extension = getFileExtension(file.name);
+      const projectType = getProjectType(file);
 
-      if (!file.name.toLowerCase().endsWith(".sb3")) {
-        showError("O arquivo selecionado não possui a extensão .sb3.");
+      fileIcon.textContent = projectType ? extension.toUpperCase() : "?";
+      fileName.textContent = file.name;
+      fileMeta.textContent = `${formatFileSize(file.size)} · ${projectType ? `projeto ${projectType}` : "formato não reconhecido"}`;
+
+      if (!projectType) {
+        showError("O arquivo selecionado precisa ter a extensão .sb3 ou .c3p.");
       } else if (file.size > MAX_FILE_SIZE) {
         showError("O arquivo selecionado ultrapassa o limite de 10 MB.");
       }
+    }
+
+    function getFileExtension(fileName) {
+      const separatorIndex = fileName.lastIndexOf(".");
+      return separatorIndex >= 0 ? fileName.slice(separatorIndex + 1).toLowerCase() : "";
+    }
+
+    function getProjectType(file) {
+      return PROJECT_TYPES[getFileExtension(file.name)];
     }
 
     function formatFileSize(bytes) {
@@ -1116,6 +1135,7 @@
     function resetForm() {
       form.reset();
       promptCount.textContent = "0";
+      fileIcon.textContent = "PROJ";
       fileName.textContent = "Arraste seu projeto aqui";
       fileMeta.textContent = "ou clique para selecionar um arquivo";
       answerText.replaceChildren();
