@@ -10,10 +10,8 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class MentorService {
-    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
-
     private final TextGenerationClient textClient;
-    private final ProjectInterpreterService ProjectInterpreterService;
+    private final ProjectInterpreterService projectInterpreterService;
 
     public String getMentorResponse(String _prompt, MultipartFile _file){
         String tempPrompt = 
@@ -29,10 +27,8 @@ public class MentorService {
                 """.formatted(_prompt);
 
         if(_file == null || _file.isEmpty()) return textClient.generateResponse(tempPrompt) ;
-        if(_file.getSize() > MAX_FILE_SIZE) throw new IllegalArgumentException("Arquivo muito grande!");
-
         
-        String projectJson = ProjectInterpreterService.extractProjectJson(_file);
+        String projectJson = projectInterpreterService.extractProjectJson(_file);
         String fullPrompt =  tempPrompt + "\n\n PROJETO "+ _file.getOriginalFilename() +" EM JSON DO ALUNO: \n\n" + projectJson;
 
         return textClient.generateResponse(fullPrompt);
