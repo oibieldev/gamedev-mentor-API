@@ -10,10 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.oibieldev.gamedev_api.service.interpreters.ProjectInterpreter;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class ScratchInterpreterService implements ProjectInterpreter{
     @Override
     public boolean supports(String _fileExtension) {
