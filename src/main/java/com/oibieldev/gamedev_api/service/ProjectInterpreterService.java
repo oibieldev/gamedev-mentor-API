@@ -1,11 +1,11 @@
 package com.oibieldev.gamedev_api.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.oibieldev.gamedev_api.service.interpreters.ProjectInterpreter;
-import com.oibieldev.gamedev_api.service.interpreters.construct.ConstructInterpreterService;
-import com.oibieldev.gamedev_api.service.interpreters.scratch.ScratchInterpreterService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -13,8 +13,8 @@ import lombok.RequiredArgsConstructor;
 @Service
 public class ProjectInterpreterService {
         private final long MAX_FILE_SIZE = 10 * 1024 * 1024;
-        private final ScratchInterpreterService scratchInterpreterService;
-        private final ConstructInterpreterService constructInterpreterService;
+        private final List<ProjectInterpreter> interpreters;
+
 
 
         public String extractProjectJson(MultipartFile _file) {
@@ -28,13 +28,17 @@ public class ProjectInterpreterService {
 
             }
             String fileExtension = fileName.substring(fileName.lastIndexOf(".") + 1);
-            ProjectInterpreter interpreter = switch (fileExtension.toLowerCase()) {
-                case "sb3" -> scratchInterpreterService;
-                case "c3p" -> constructInterpreterService;
-                default -> 
-                throw new IllegalArgumentException(
-                        "Não há um interpretador disponível para a extensão de arquivo: " + fileExtension);
-            };
+            ProjectInterpreter interpreter = interpreters.stream()
+                .filter(currentInterpreter ->
+                    currentInterpreter.supports(fileExtension)
+                )
+                .findFirst()
+                .orElseThrow(() ->
+                    new IllegalArgumentException(
+                        "Não há um interpretador disponível para a extensão: "
+                        + fileExtension
+                    )
+                );
 
             return interpreter.interpret(_file);
         }
