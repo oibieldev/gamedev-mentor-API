@@ -49,16 +49,12 @@ public class GameMakerInterpreterService implements ProjectInterpreter {
 
                 String entryName = entry.getName();
 
-                if ("{}".equals(project)) {
-                    throw new IllegalStateException(
-                        "O projeto GameMaker não possui um arquivo .yyp."
-                    );
-                }
-
+                
                 if(entryName.endsWith(".yyp")){
                     project = this.convertJsonToString(zipInputStream);
                 }
-
+                
+                
                 if(entryName.startsWith("objects/") && entryName.endsWith(".yy")){
                     String currentObjectJson = this.convertJsonToString(zipInputStream);
                     objects = this.appendJson(objects, currentObjectJson);
@@ -68,7 +64,7 @@ public class GameMakerInterpreterService implements ProjectInterpreter {
                     String currentRoomJson = this.convertJsonToString(zipInputStream);
                     rooms = this.appendJson(rooms, currentRoomJson);
                 }
-
+                
                 if(entryName.startsWith("sprites/") && entryName.endsWith(".yy")){
                     String currentSpriteJson = this.convertJsonToString(zipInputStream);
                     sprites = this.appendJson(sprites, currentSpriteJson);
@@ -81,16 +77,22 @@ public class GameMakerInterpreterService implements ProjectInterpreter {
 
                 entry = zipInputStream.getNextEntry();
             }
-
-
+            
+            if ("{}".equals(project)) {
+                throw new IllegalStateException(
+                    "O projeto GameMaker não possui um arquivo .yyp."
+                );
+            }
+            
+            
         } catch (Exception exception) {
             throw new IllegalStateException(
                 "Não foi possível ler o projeto GameMaker. Exception: "
-                 + exception.getMessage(), 
+                + exception.getMessage(), 
                  exception
                 );    
-        }
-
+            }
+            
         return """
             {
                 "project": %s,
@@ -98,7 +100,7 @@ public class GameMakerInterpreterService implements ProjectInterpreter {
                 "rooms": [%s],
                 "sprites": [%s],
                 "code": [%s]
-            }
+                }
             """.formatted(
                 project,
                 objects,
