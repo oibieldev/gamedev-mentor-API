@@ -2,26 +2,35 @@
 
 Java and Spring Boot backend for contextual and pedagogical mentoring in Game Development.
 
-The project combines deterministic project inspection with generative AI to help students investigate bugs, understand programming logic, and develop autonomy instead of simply receiving ready-made solutions.
+The project combines deterministic game-project inspection with generative AI to help students investigate bugs, understand programming logic, and develop autonomy instead of simply receiving ready-made solutions.
 
-> **Status:** Functional MVP — currently in stabilization and engineering-quality improvement.
+> **Status:** Functional multi-engine MVP — currently evolving toward stronger validation, automated tests, and structured project models.
 
 ---
 
 ## Overview
 
-GameDev Mentor started as a simple text integration with Gemini and evolved into a backend capable of receiving a student's question together with an optional Scratch `.sb3` project.
+GameDev Mentor receives a student's question together with an optional game project.
 
-When a project is attached, the API:
+The backend identifies the project format, selects the appropriate interpreter, extracts relevant project information, combines that context with the student's question, and sends the resulting prompt to the configured AI provider.
 
-1. validates the uploaded file;
-2. opens the `.sb3` package as a ZIP archive;
-3. locates and extracts `project.json`;
-4. combines the project context with the student's question;
-5. sends the controlled context to Gemini;
-6. returns a pedagogically guided response.
+Currently supported engines:
 
-The current goal is not to let AI solve the student's project.
+| Engine | Project format | Current inspection |
+|---|---|---|
+| Scratch | `.sb3` | `project.json` |
+| Construct 3 | `.c3p` | project, object types, layouts and event sheets |
+| GameMaker | `.yyz` | project, objects, rooms, sprites and GML source code |
+
+The raw project archive is not sent directly to the AI provider.
+
+The backend controls which information is extracted and included in the mentoring context.
+
+---
+
+## Pedagogical Principle
+
+> **AI should amplify student autonomy, not replace the learning process.**
 
 The mentor should prioritize:
 
@@ -31,29 +40,29 @@ The mentor should prioritize:
 - conceptual explanations;
 - progressive hints.
 
+Instead of immediately solving the problem, the system should help the student understand what to inspect, why something may be happening, and how to reach the solution.
+
 ---
 
 ## Current MVP
 
-The current version already includes:
+The current version includes:
 
+- Java;
 - Spring Boot REST API;
 - Gemini integration;
-- synchronous HTTP integration using `RestClient`;
 - provider abstraction through `TextGenerationClient`;
-- DTOs implemented with Java `record`;
-- JSON serialization and deserialization with Jackson;
-- API key configured through environment variables;
-- configurable Gemini model;
-- `multipart/form-data` support;
-- optional Scratch `.sb3` upload;
-- basic Scratch package inspection;
-- `project.json` extraction;
+- synchronous HTTP integration;
+- `multipart/form-data` requests;
+- optional project uploads;
+- centralized project interpreter resolution;
+- Scratch `.sb3` support;
+- Construct 3 `.c3p` support;
+- GameMaker `.yyz` support;
 - upload size validation;
 - pedagogical base prompt;
 - text-only mentoring when no project is attached;
-- simple HTML interface for manual testing;
-- development through branches and Pull Requests.
+- simple browser interface for manual testing.
 
 ---
 
@@ -62,7 +71,8 @@ The current version already includes:
 ```text
 Student question
       +
-optional .sb3 file
+optional project
+(.sb3 / .c3p / .yyz)
       |
       v
 MentorController
@@ -70,122 +80,143 @@ MentorController
       v
 MentorService
       |
-      +-------------------------+
-      |                         |
-      v                         v
-ScratchInterpreterService   TextGenerationClient
-      |                         |
-      v                         v
- project.json              GeminiTextClient
-      |                         |
-      +------ context ----------+
-                                |
-                                v
-                           Gemini API
-                                |
-                                v
-                         MentorResponse
+      v
+ProjectInterpreterService
+      |
+      v
+List<ProjectInterpreter>
+      |
+      +----------------+----------------+
+      |                |                |
+      v                v                v
+   Scratch         Construct 3       GameMaker
+Interpreter        Interpreter       Interpreter
+      |                |                |
+      +----------------+----------------+
+                       |
+                       v
+                Project context
+                       |
+                       +
+                Student question
+                       |
+                       v
+             TextGenerationClient
+                       |
+                       v
+                GeminiTextClient
+                       |
+                       v
+                   Gemini
+                       |
+                       v
+              Mentor response
 ```
 
 ---
 
-## Current Architecture
+# Architecture
 
-The MVP uses a simple layered architecture while keeping external AI integration isolated from the main application flow.
+## `MentorController`
 
-### `MentorController`
+Responsible for HTTP concerns.
 
-Responsible for HTTP concerns:
+Main responsibilities:
 
-- receives the prompt;
-- receives the optional project file;
-- delegates processing to the service;
-- returns the HTTP response.
+- receive the student's prompt;
+- receive the optional project file;
+- delegate the request to the service layer;
+- return the response.
 
-The controller should not contain parsing rules or AI-provider integration details.
+Parsing rules and AI-provider details should remain outside the controller.
 
-### `MentorService`
+---
+
+## `MentorService`
 
 Coordinates the mentoring flow.
 
-It decides whether a project is attached, requests project inspection when necessary, builds the pedagogical context, and calls the text generation contract.
+Responsibilities:
 
-### `ScratchInterpreterService`
+- build the pedagogical base prompt;
+- detect whether a project was attached;
+- request project interpretation;
+- combine project context and student question;
+- call the text generation abstraction.
 
-Responsible for the current Scratch project inspection.
+The service does not need to know how Scratch, Construct, or GameMaker projects are internally structured.
 
-A Scratch `.sb3` file is a ZIP package containing a `project.json` file that describes the project's logical structure.
+---
 
-The current implementation extracts this JSON as text.
+## `ProjectInterpreter`
 
-> A full semantic Scratch parser is intentionally not part of the current stabilization cycle.
-
-### `TextGenerationClient`
-
-Represents the abstract capability of generating a text response.
+Common contract for all supported project interpreters.
 
 ```java
-public interface TextGenerationClient {
-    String generateResponse(String _prompt);
+public interface ProjectInterpreter {
+
+    boolean supports(String _fileExtension);
+
+    String interpret(MultipartFile _file);
 }
 ```
 
-The application depends on this contract instead of depending directly on Gemini.
-
-### `GeminiTextClient`
-
-Current implementation of `TextGenerationClient`.
-
-Responsibilities:
-
-- build Gemini requests;
-- execute HTTP requests;
-- deserialize provider responses;
-- validate the returned structure;
-- extract generated text;
-- translate provider-specific failures.
-
-This separation allows other providers to be introduced later without changing the main mentoring flow.
+Each implementation decides which extension it supports and how that project format should be inspected.
 
 ---
 
-## Pedagogical Principle
+## `ProjectInterpreterService`
 
-> **AI should amplify student autonomy, not replace the learning process.**
+Responsible for:
 
-The mentor should avoid immediately providing complete solutions.
+- validating uploaded files;
+- identifying the project extension;
+- selecting the correct interpreter.
 
-Responses should encourage students to:
+Spring injects all implementations of:
 
-1. inspect the problem;
-2. formulate hypotheses;
-3. test project behavior;
-4. understand the underlying concept;
-5. reach the solution with progressively less assistance.
-
----
-
-## Current Endpoint
-
-The main endpoint accepts `multipart/form-data`.
-
-```http
-POST /api/chat
-Content-Type: multipart/form-data
+```java
+ProjectInterpreter
 ```
 
-Request parts:
+into:
+
+```java
+List<ProjectInterpreter>
+```
+
+The interpreter is selected dynamically through:
+
+```java
+interpreter.supports(fileExtension)
+```
+
+This allows new engines to be added without creating engine-specific conditions inside the main mentoring flow.
+
+Current implementations:
 
 ```text
-prompt = "My character does not jump. What should I investigate?"
-file   = project.sb3   # optional
+ProjectInterpreter
+├── ScratchInterpreterService
+├── ConstructInterpreterService
+└── GameMakerInterpreterService
 ```
-
-Without a project file, the same endpoint behaves as a text mentor.
 
 ---
 
-## Scratch Flow
+# Supported Project Formats
+
+## Scratch `.sb3`
+
+Scratch projects are ZIP packages.
+
+The current interpreter locates:
+
+```text
+project.json
+```
+
+and extracts it as text.
 
 ```text
 project.sb3
@@ -196,533 +227,503 @@ ZIP inspection
     v
 project.json
     |
-    + student question
-    |
     v
-pedagogical prompt
-    |
-    v
-Gemini
-    |
-    v
-guided response
+AI context
 ```
 
-The raw `.sb3` archive is not sent directly to the AI provider.
-
-The backend controls which project information reaches the model.
+A semantic Scratch parser is intentionally postponed.
 
 ---
 
-## Gemini Configuration
+## Construct 3 `.c3p`
 
-Gemini is currently the only real AI provider enabled by the application.
+Construct 3 project files are ZIP packages containing several JSON resources.
 
-Example configuration:
+The current interpreter extracts the essential project structure:
 
-```properties
-gemini.api.base-url=https://generativelanguage.googleapis.com
-gemini.api.key=${GEMINI_API_KEY}
-gemini.api.model=gemini-3.6-flash
+```text
+project.c3proj
+
+objectTypes/
+    *.json
+
+layouts/
+    *.json
+
+eventSheets/
+    *.json
 ```
 
-The API key must remain server-side.
+UI state files such as:
 
-Example:
-
-```bash
-export GEMINI_API_KEY="your-api-key"
+```text
+*.uistate.json
 ```
 
-Gemini-specific code remains isolated behind `TextGenerationClient`.
+are ignored.
 
-Gemini is therefore an implementation detail of the current MVP, not a dependency of the main application logic.
+The resulting context contains:
 
----
+```json
+{
+  "project": {},
+  "objectTypes": [],
+  "layouts": [],
+  "eventSheets": []
+}
+```
 
-## Security
+This provides the AI with information about:
 
-Uploaded project files must always be treated as untrusted input.
-
-### Current protections
-
-- maximum upload size;
-- `.sb3` extension validation;
-- provider credentials stored only on the backend;
-- API key not exposed to the browser.
-
-### Stabilization improvements
-
-- stronger ZIP validation;
-- explicit rejection of malformed archives;
-- failure when `project.json` is missing;
-- archive entry limits;
-- decompressed-size limits;
-- `project.json` size limit;
-- ZIP bomb protection;
-- `try-with-resources`;
-- global exception handling;
-- removal of `printStackTrace()` from application flow.
-
-Real student projects must never be committed as public fixtures.
-
-Tests should use synthetic and sanitized projects.
+- project configuration;
+- objects;
+- layouts;
+- variables;
+- conditions;
+- actions;
+- event logic.
 
 ---
 
-## Privacy
+## GameMaker `.yyz`
 
-This public repository represents only the generic and sanitized project core.
+GameMaker `.yyz` files are compressed project packages.
 
-Do not commit:
+A GameMaker project contains a main `.yyp` file together with several `.yy` resources and GML source files.
 
-- student names;
-- real student conversations;
-- private student projects;
-- school credentials;
-- internal PROFIA Portal URLs;
-- API keys;
-- access tokens;
-- private institutional documents.
+The current interpreter intentionally focuses on the essential resources.
 
-Institution-specific integrations should remain separate from the public core.
+### Project
+
+```text
+*.yyp
+```
+
+### Objects
+
+```text
+objects/**/*.yy
+```
+
+### Rooms
+
+```text
+rooms/**/*.yy
+```
+
+### Sprites
+
+```text
+sprites/**/*.yy
+```
+
+### GML code
+
+```text
+**/*.gml
+```
+
+Other resources such as images, build options, and IDE metadata are currently ignored.
+
+The resulting context follows this structure:
+
+```json
+{
+  "project": {},
+  "objects": [],
+  "rooms": [],
+  "sprites": [],
+  "code": []
+}
+```
+
+GML files preserve both their project path and source code:
+
+```json
+{
+  "file": "objects/obj_player/Step_0.gml",
+  "content": "..."
+}
+```
+
+This is important because the source location provides context about which object or resource owns the code.
+
+GameMaker `.yy` and `.yyp` resources are normalized using Jackson before being included in the resulting context.
+
+GML source code is wrapped into JSON objects so characters such as quotes and line breaks are escaped safely.
 
 ---
 
-# Immediate Roadmap — MVP Stabilization
+# Interpreter Extensibility
 
-Before adding new product features, the existing MVP will be corrected and hardened.
+Adding another engine should require implementing only:
 
-## 1. Documentation
-
-- [ ] keep the README aligned with the real implementation;
-- [ ] document local execution;
-- [ ] document `multipart/form-data` requests;
-- [ ] document current limitations.
-
-## 2. Build Consistency
-
-- [ ] review the Java version used by the project;
-- [ ] align documentation and build configuration;
-- [ ] remove unused dependencies;
-- [ ] keep `pom.xml` aligned with the actual implementation.
-
-## 3. Code Cleanup
-
-- [ ] remove Gemini-specific naming from the service layer;
-- [ ] review dependency visibility;
-- [ ] remove unused imports;
-- [ ] simplify controller and method names when useful;
-- [ ] preserve the project's `_parameter` naming convention.
+```java
+ProjectInterpreter
+```
 
 Example:
 
 ```java
-public String generateResponse(String _prompt) {
-    // ...
+@Service
+public class ExampleInterpreterService
+        implements ProjectInterpreter {
+
+    @Override
+    public boolean supports(String _fileExtension) {
+        return "example".equalsIgnoreCase(_fileExtension);
+    }
+
+    @Override
+    public String interpret(MultipartFile _file) {
+        // project inspection
+    }
 }
 ```
 
-The `_` prefix is intentionally kept to distinguish method parameters from local variables.
+Spring automatically includes the new implementation in:
 
-## 4. Error Handling
+```java
+List<ProjectInterpreter>
+```
 
-- [ ] create application-specific exceptions;
-- [ ] implement `@RestControllerAdvice`;
-- [ ] map invalid files to appropriate HTTP responses;
-- [ ] translate provider failures consistently;
-- [ ] remove `printStackTrace()`.
+No engine-specific `switch` is required inside `ProjectInterpreterService`.
 
-Possible error codes:
+---
+
+# AI Provider Abstraction
+
+The main application depends on:
+
+```java
+public interface TextGenerationClient {
+
+    String generateResponse(String _prompt);
+}
+```
+
+The current implementation is:
+
+```text
+GeminiTextClient
+```
+
+This keeps Gemini-specific integration outside the mentoring domain.
+
+Conceptually:
+
+```text
+MentorService
+      |
+      v
+TextGenerationClient
+      |
+      v
+GeminiTextClient
+      |
+      v
+Gemini API
+```
+
+Other providers can be introduced later without changing the central mentoring flow.
+
+---
+
+# Endpoint
+
+The main endpoint accepts:
+
+```http
+POST /api/chat
+Content-Type: multipart/form-data
+```
+
+Request:
+
+```text
+prompt = "My character does not jump. What should I investigate?"
+
+file = project.sb3
+```
+
+or:
+
+```text
+file = project.c3p
+```
+
+or:
+
+```text
+file = project.yyz
+```
+
+The file is optional.
+
+Without an attached project, GameDev Mentor behaves as a text-only mentor.
+
+---
+
+# Upload Validation
+
+The current application validates:
+
+- empty files;
+- maximum upload size;
+- file extension;
+- availability of an interpreter for the extension.
+
+Current upload limit:
+
+```text
+10 MB
+```
+
+Supported extensions:
+
+```text
+.sb3
+.c3p
+.yyz
+```
+
+---
+
+# Security
+
+Uploaded project files must always be treated as untrusted input.
+
+Current protections include:
+
+- maximum archive upload size;
+- controlled interpreter selection;
+- project format validation;
+- backend-only provider credentials;
+- no direct exposure of API keys to the browser.
+
+Archive hardening is still an active engineering task.
+
+Future improvements include:
+
+- archive entry count limits;
+- decompressed-size limits;
+- per-entry size limits;
+- ZIP bomb protection;
+- stronger corrupted archive validation;
+- application-specific project exceptions;
+- centralized HTTP error handling.
+
+The current interpreters still use archive-entry reads that should eventually receive decompressed-size protection.
+
+---
+
+# Privacy
+
+Real student information must never be committed to the public repository.
+
+Do not commit:
+
+- student names;
+- student conversations;
+- private student projects;
+- school credentials;
+- internal institutional URLs;
+- API keys;
+- access tokens;
+- private institutional documents.
+
+Tests should use synthetic or sanitized fixtures.
+
+---
+
+# Current Limitations
+
+Project interpretation currently prioritizes useful context extraction rather than full semantic parsing.
+
+### Scratch
+
+Currently extracts:
+
+```text
+project.json
+```
+
+No semantic block model yet.
+
+### Construct 3
+
+Currently extracts relevant project JSON resources.
+
+There is no dedicated Java domain model yet.
+
+### GameMaker
+
+Currently extracts:
+
+- project metadata;
+- objects;
+- rooms;
+- sprites;
+- GML source code.
+
+The interpreter does not currently build:
+
+- GML ASTs;
+- symbol tables;
+- variable graphs;
+- call graphs;
+- object relationships;
+- semantic code models.
+
+These capabilities may be introduced only when they provide clear value to mentoring.
+
+---
+
+# Immediate Engineering Roadmap
+
+## Project Models
+
+Replace manually assembled JSON strings incrementally with structured Java models using records where useful.
+
+Possible direction:
+
+```text
+ScratchProject
+ConstructProject
+GameMakerProject
+```
+
+---
+
+## Error Handling
+
+Introduce application-specific exceptions and:
+
+```java
+@RestControllerAdvice
+```
+
+Possible errors:
 
 ```text
 INVALID_PROJECT_FILE
+UNSUPPORTED_PROJECT_FORMAT
 INVALID_SCRATCH_PROJECT
+INVALID_CONSTRUCT_PROJECT
+INVALID_GAMEMAKER_PROJECT
 AI_PROVIDER_RATE_LIMITED
 AI_PROVIDER_UNAVAILABLE
 AI_PROVIDER_TIMEOUT
 INTERNAL_ERROR
 ```
 
-## 5. Scratch Interpreter Hardening
+---
 
-- [ ] use `try-with-resources`;
-- [ ] fail explicitly when `project.json` is missing;
-- [ ] reject corrupted ZIP archives;
-- [ ] limit archive entry count;
-- [ ] limit decompressed data;
-- [ ] limit `project.json` size;
-- [ ] add ZIP bomb protection.
+## Archive Security
 
-> Semantic Scratch parsing is intentionally postponed.
+Add:
 
-## 6. Automated Tests
+- maximum entry count;
+- decompressed-size limits;
+- resource size limits;
+- corrupted archive validation;
+- ZIP bomb protection.
 
-- [ ] `ScratchInterpreterService` tests;
-- [ ] `MentorService` tests;
-- [ ] mocked `TextGenerationClient`;
-- [ ] multipart endpoint tests;
-- [ ] invalid file tests;
-- [ ] malformed archive tests;
-- [ ] missing `project.json` tests;
-- [ ] CI with `./mvnw verify`.
+---
+
+## Automated Tests
+
+Add tests for:
+
+```text
+ScratchInterpreterService
+ConstructInterpreterService
+GameMakerInterpreterService
+ProjectInterpreterService
+MentorService
+MentorController
+```
+
+Important scenarios:
+
+- supported project;
+- unsupported extension;
+- empty file;
+- oversized file;
+- malformed archive;
+- missing root project file;
+- malformed JSON resource;
+- valid GML extraction.
+
+CI should eventually execute:
+
+```bash
+./mvnw verify
+```
+
+for every Pull Request.
 
 ---
 
 # Future Product Roadmap
 
-## 1. Construct `.c3p` Interpreter
-
-Add support for Construct projects.
-
-Initial goals:
-
-- layouts;
-- objects;
-- behaviors;
-- variables;
-- Event Sheets;
-- conditions;
-- actions;
-- includes;
-- assets;
-- basic relationships between elements.
-
-Support should evolve incrementally, starting with simple educational projects.
-
----
-
-## 2. GameMaker `.yyp` Interpreter
-
-Evaluate and implement support for GameMaker projects.
-
-Possible stages:
-
-### Level 1 — Inventory
-
-- rooms;
-- objects;
-- sprites;
-- scripts;
-- assets.
-
-### Level 2 — Relationships
-
-- objects using sprites;
-- instances inside rooms;
-- resource references.
-
-### Level 3 — Structural GML Analysis
-
-- source parsing;
-- AST;
-- calls;
-- variables;
-- symbols.
-
-Full GML analysis should be studied before being treated as a committed requirement.
-
----
-
-## 3. Image Generation
-
-Add image generation through Gemini for:
-
-- visual concepts;
-- sprites;
-- character references;
-- educational assets;
-- visual prototyping.
-
-This capability should use separate endpoints and quotas from text mentoring.
-
----
-
-## 4. Teacher and Student Profiles
-
-Introduce different mentoring behaviors for:
-
-- **Student**
-- **Teacher**
-
-### Student
-
-More guided answers with:
-
-- investigative questions;
-- progressive hints;
-- conceptual explanations.
-
-### Teacher
-
-More technical answers with:
-
-- diagnostics;
-- likely causes;
-- project structure analysis;
-- intervention suggestions.
-
----
-
-## 5. Local Database
-
-Introduce local persistence for:
-
-- users;
-- profiles;
-- settings;
-- summarized interactions;
-- personalization data;
-- project metadata.
-
-The storage technology will be selected when this requirement becomes active.
-
----
-
-## 6. Pedagogical Personalization
-
-Each student may eventually have an evolving learning profile based on observable usage signals.
-
-Possible signals:
-
-- concepts already understood;
-- recurring mistakes;
-- number of hints required;
-- concepts currently being developed;
-- preferred explanation style;
-- recent progress;
-- increasing autonomy.
-
-This system should record observable evidence rather than psychological labels.
-
-Example:
-
-```json
-{
-  "strengths": [
-    "understands simple sequences"
-  ],
-  "developingSkills": [
-    "nested loops"
-  ],
-  "preferredSupport": [
-    "step-by-step questions"
-  ]
-}
-```
-
-This feature may later integrate with ContextSyncAI.
-
----
-
-## 7. Scalability and Asynchronous Processing
-
-Spring already supports concurrent HTTP requests.
-
-Asynchronous processing should be introduced when workloads actually require operations outside the request-response flow.
-
-Possible cases:
-
-- image generation;
-- audio generation;
-- 3D generation;
-- expensive project analysis;
-- queues;
-- batch processing;
-- long-running background tasks.
-
----
-
-## 8. Multi-LLM Orchestration
-
-Expand the provider abstraction to support multiple models.
-
-Possible providers:
-
-- Gemini;
-- OpenAI;
-- Anthropic;
-- Mistral;
-- open-weight models;
-- other providers.
-
-A future routing layer may select providers according to:
-
-- task type;
-- cost;
-- latency;
-- availability;
-- reasoning requirements;
-- privacy policy.
-
-Conceptual flow:
-
-```text
-Student request
-      |
-      v
-ModelRouter
-      |
-      +------ Gemini
-      |
-      +------ OpenAI
-      |
-      +------ Anthropic
-      |
-      +------ alternative model
-```
-
----
-
-## 9. Audio Generation
-
-Research APIs for:
-
-- narration;
-- spoken explanations;
-- sound effects;
-- accessibility support;
-- educational audio.
-
----
-
-## 10. 3D Model Generation
-
-Evaluate AI-generated assets in formats compatible with Game Development workflows.
-
-Possible outputs:
-
-- `.glb`;
-- `.gltf`;
-- other engine-compatible formats.
-
-The priority should be practical compatibility rather than technology demonstration alone.
-
----
-
-## 11. PROFIA-Owned AI Model
-
-Long-term research topic.
-
-It should only be considered when there is:
-
-- sufficient data;
-- proper governance;
-- a sanitized dataset;
-- a clear methodology;
-- benchmarks;
-- infrastructure;
-- demonstrated need;
-- economic justification.
-
-Possible approaches:
-
-- fine-tuning;
-- specialized open-weight models;
-- proprietary embeddings;
-- auxiliary classifiers;
-- routing models.
-
-This is not an MVP goal.
-
----
-
-## 12. VS Code Extension / IDE Integration
-
-A future extension may allow GameDev Mentor to understand larger projects such as Unity applications without requiring manual upload of a single file.
-
-Conceptual flow:
-
-```text
-VS Code Extension
-      |
-      v
-controlled project inspection
-      |
-      v
-GameDev Mentor API
-      |
-      v
-analysis + AI
-```
-
-Possible information:
-
-- file tree;
-- C# scripts;
-- scenes;
-- prefabs;
-- packages;
-- compiler errors;
-- logs;
-- references between scripts.
-
-The extension should never upload an entire project indiscriminately.
-
----
-
-# Not Being Implemented Now
-
-To preserve focus, the following are intentionally postponed:
-
-- semantic Scratch parser;
-- Construct support;
-- GameMaker support;
-- database;
-- user profiles;
+Possible future capabilities include:
+
+- structured project Records;
+- richer GameMaker GML analysis;
+- deeper Construct project relationships;
+- teacher and student mentoring profiles;
+- persistent user data;
 - pedagogical personalization;
-- multi-LLM routing;
 - image generation;
 - audio generation;
-- 3D generation;
-- proprietary AI model;
-- VS Code extension.
+- multi-provider AI routing;
+- IDE integrations;
+- Unity project inspection;
+- larger asynchronous analysis workflows.
 
-The current priority is **engineering quality of the existing MVP**.
+These should be introduced incrementally according to demonstrated product needs.
 
 ---
 
 # Development Workflow
 
-Use short-lived and focused branches.
+Prefer short-lived and focused branches.
 
 Examples:
 
 ```text
-docs/update-readme
-build/clean-unused-dependencies
-refactor/mentor-service
-fix/scratch-error-handling
-fix/scratch-archive-security
-test/scratch-interpreter
+feat/gamemaker-interpreter
+feat/project-records
+fix/archive-validation
+test/project-interpreters
 feat/api-exception-handler
+docs/update-readme
 ```
 
 ---
 
 ## Conventional Commits
 
-Commits should be concise and preferably written in English.
+Commit messages should be concise and preferably written in English.
 
 Examples:
 
 ```text
-docs: align README with current MVP
+feat(interpreter): add GameMaker project support
 
-build: remove unused AI dependencies
+feat(interpreter): add Construct project support
 
-refactor(mentor): remove provider-specific naming
+refactor(interpreter): resolve project interpreters dynamically
 
-fix(scratch): close archive stream safely
+fix(scratch): correct project reading error
 
-fix(scratch): fail when project json is missing
+test(gamemaker): cover YYZ project interpretation
 
-feat(api): add global exception handling
-
-test(scratch): cover malformed archives
+docs: update supported project formats
 ```
 
-Avoid messages such as:
+Avoid vague messages such as:
 
 ```text
 updates
@@ -745,79 +746,67 @@ git diff --staged
 git commit
 ```
 
-Each commit should represent one small, logical, understandable change.
+Each commit should represent one small, understandable change.
 
 ---
 
 # Development Philosophy
 
-The project follows a few simple rules:
+The project follows a few core principles:
 
 - keep external integrations at system boundaries;
-- inspect and validate projects before sending context to AI;
-- prefer deterministic logic when AI is not required;
-- create abstractions only when a real boundary exists;
-- treat external files as hostile input;
+- inspect projects deterministically before sending context to AI;
+- keep engine-specific logic inside dedicated interpreters;
+- prefer simple abstractions with clear responsibilities;
+- treat uploaded files as hostile input;
 - never expose credentials to clients;
 - preserve student autonomy as a product requirement;
 - evolve through small and testable Pull Requests;
-- keep the code simple enough to understand and maintain.
+- avoid premature semantic parsing;
+- keep the code understandable before making it sophisticated.
 
 ---
 
 # Current Status
 
 ```text
-Gemini text MVP                  ✅
-Provider abstraction             ✅
-Scratch .sb3 upload              ✅
-project.json extraction          ✅
-Pedagogical base prompt          ✅
-Browser demo                     ✅
-Pull Requests                    ✅
+Gemini text mentoring              ✅
+Provider abstraction               ✅
+Text-only mentoring                ✅
 
-MVP stabilization               🚧
-Global error handling            🚧
-Automated tests                  🚧
-Robust ZIP security              🚧
-Dependency cleanup               🚧
+ProjectInterpreter abstraction     ✅
+Dynamic interpreter resolution     ✅
 
-Construct interpreter            ⏳
-GameMaker interpreter            ⏳
-Image generation                 ⏳
-Teacher/Student profiles         ⏳
-Local database                   ⏳
-Pedagogical personalization      ⏳
-Multi-LLM orchestration          ⏳
-Audio and 3D generation          ⏳
-PROFIA-owned AI model            ⏳
-VS Code extension                ⏳
+Scratch .sb3 support               ✅
+Construct 3 .c3p support           ✅
+GameMaker .yyz support             ✅
+
+Browser testing interface          ✅
+10 MB upload validation            ✅
+
+Structured project Records         ⏳
+Global exception handling          ⏳
+Automated interpreter tests        ⏳
+Archive hardening                  ⏳
+CI verification                    ⏳
 ```
 
 ---
 
-# Why This Project Exists
+## Tech Stack
 
-GameDev Mentor is both an educational product experiment and a backend engineering project.
-
-It explores the integration of:
-
-- Java;
-- Spring Boot;
-- external APIs;
-- file parsing;
-- defensive programming;
-- software architecture;
-- generative AI;
-- Game Development;
-- educational methodology.
-
-The long-term goal is not to build just another chatbot.
-
-The goal is to build a system that understands enough about the student's real project to provide useful, explainable, contextual, and pedagogically appropriate guidance.
+```text
+Java 25
+Spring Boot 4
+Spring MVC
+Jackson
+Lombok
+Gemini API
+Maven
+```
 
 ---
 
-## License
+## Author
 
-The license will be defined after project ownership, public scope, and future contribution rules are finalized.
+Developed as an educational backend experiment focused on applying AI to Game Development mentoring without replacing the student's learning process.
