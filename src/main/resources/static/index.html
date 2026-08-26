@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Envie um projeto Scratch ou Construct 3 e converse com o GameDev Mentor.">
+  <meta name="description" content="Envie um projeto Scratch, Construct 3 ou GameMaker e converse com o GameDev Mentor.">
   <title>GameDev Mentor — Analise seu projeto</title>
   <style>
     :root {
@@ -734,7 +734,7 @@
         <div class="eyebrow">Mentoria assistida por IA</div>
         <h1 id="hero-title">Entenda seu <span>jogo.</span></h1>
         <p class="intro">
-          Descreva a sua dúvida e, se quiser, envie também um projeto Scratch ou Construct 3 para
+          Descreva a sua dúvida e, se quiser, envie também um projeto Scratch, Construct 3 ou GameMaker para
           receber uma orientação com mais contexto sobre o seu código.
         </p>
         <div class="stack" aria-label="Tecnologias do projeto">
@@ -742,6 +742,7 @@
           <span>SPRING BOOT</span>
           <span>SCRATCH .SB3</span>
           <span>CONSTRUCT 3 .C3P</span>
+          <span>GAMEMAKER .YYZ</span>
           <span>GEMINI API</span>
         </div>
       </div>
@@ -770,12 +771,12 @@
 
             <div class="field">
               <div class="label-row">
-                <span class="field-label">Projeto Scratch ou Construct 3 <span class="field-help">(opcional)</span></span>
-                <span class="field-help">.sb3 ou .c3p · máximo 10 MB</span>
+                <span class="field-label">Projeto Scratch, Construct 3 ou GameMaker <span class="field-help">(opcional)</span></span>
+                <span class="field-help">.sb3, .c3p ou .yyz · máximo 10 MB</span>
               </div>
 
               <label class="drop-zone" id="drop-zone" for="file">
-                <input class="file-input" id="file" name="file" type="file" accept=".sb3,.c3p,application/x.scratch.sb3">
+                <input class="file-input" id="file" name="file" type="file" accept=".sb3,.c3p,.yyz,application/x.scratch.sb3">
                 <span class="file-icon" id="file-icon">PROJ</span>
                 <span class="file-copy">
                   <strong id="file-name">Arraste seu projeto aqui</strong>
@@ -827,7 +828,7 @@
       <article class="feature">
         <span class="feature-number">02 / PROJETO</span>
         <h2>Adicione contexto, se precisar</h2>
-        <p>Ao enviar um .sb3 ou .c3p, a API extrai os arquivos do projeto para compreender sua lógica.</p>
+        <p>Ao enviar um .sb3, .c3p ou .yyz, a API extrai os arquivos do projeto para compreender sua lógica.</p>
       </article>
       <article class="feature">
         <span class="feature-number">03 / MENTORIA</span>
@@ -846,7 +847,8 @@
     const MAX_FILE_SIZE = 10 * 1024 * 1024;
     const PROJECT_TYPES = {
       sb3: "Scratch",
-      c3p: "Construct 3"
+      c3p: "Construct 3",
+      yyz: "GameMaker"
     };
     const form = document.querySelector("#mentor-form");
     const promptInput = document.querySelector("#prompt");
@@ -916,7 +918,7 @@
       const apiUrl = apiUrlInput.value.trim();
 
       if (!prompt) return showError("Escreva uma pergunta para o mentor.");
-      if (projectFile && !getProjectType(projectFile)) return showError("O arquivo precisa ter a extensão .sb3 ou .c3p.");
+      if (projectFile && !getProjectType(projectFile)) return showError("O arquivo precisa ter a extensão .sb3, .c3p ou .yyz.");
       if (projectFile && projectFile.size > MAX_FILE_SIZE) return showError("O arquivo deve ter no máximo 10 MB.");
       if (!apiUrl) return showError("Informe o endereço da API.");
 
@@ -1096,7 +1098,7 @@
       fileMeta.textContent = `${formatFileSize(file.size)} · ${projectType ? `projeto ${projectType}` : "formato não reconhecido"}`;
 
       if (!projectType) {
-        showError("O arquivo selecionado precisa ter a extensão .sb3 ou .c3p.");
+        showError("O arquivo selecionado precisa ter a extensão .sb3, .c3p ou .yyz.");
       } else if (file.size > MAX_FILE_SIZE) {
         showError("O arquivo selecionado ultrapassa o limite de 10 MB.");
       }

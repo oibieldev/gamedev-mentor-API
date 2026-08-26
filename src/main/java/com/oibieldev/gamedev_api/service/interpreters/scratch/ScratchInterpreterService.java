@@ -10,10 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.oibieldev.gamedev_api.service.interpreters.ProjectInterpreter;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class ScratchInterpreterService implements ProjectInterpreter{
     @Override
     public boolean supports(String _fileExtension) {
@@ -38,11 +35,11 @@ public class ScratchInterpreterService implements ProjectInterpreter{
                 entry = zipInputStream.getNextEntry();
             }
 
-        } catch (IOException exception) {
+        } catch (IOException _exception) {
             throw new IllegalStateException(
-                "Não foi possível ler o projeto Construct 3. Exception: "
-                 + exception.getMessage(), 
-                 exception
+                "Não foi possível ler o projeto Scratch. Exception: "
+                 + _exception.getMessage(), 
+                 _exception
                 );    
         }
 
