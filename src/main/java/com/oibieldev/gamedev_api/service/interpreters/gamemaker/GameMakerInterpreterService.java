@@ -85,13 +85,13 @@ public class GameMakerInterpreterService implements ProjectInterpreter {
             }
             
             
-        } catch (Exception exception) {
+        } catch (IOException _exception) {
             throw new IllegalStateException(
                 "Não foi possível ler o projeto GameMaker. Exception: "
-                + exception.getMessage(), 
-                 exception
+                 + _exception.getMessage(), 
+                 _exception
                 );    
-            }
+        }
             
         return """
             {
