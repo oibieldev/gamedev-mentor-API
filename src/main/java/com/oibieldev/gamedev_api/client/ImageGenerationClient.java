@@ -8,5 +8,5 @@ import com.oibieldev.gamedev_api.dto.image.ImageGenerationResponse;
  */
 public interface ImageGenerationClient {
 
-    ImageGenerationResponse generateImages(String prompt);
+    ImageGenerationResponse generateImages(String _prompt);
 }

@@ -7,12 +7,12 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 /** Filtered provider facts; never contains prompts, credentials or raw error messages. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ImageProviderDiagnostics(
-        int httpStatus,
-        String providerStatus,
-        String providerReason,
-        String model,
-        List<QuotaViolation> quotas,
-        Long retryAfterSeconds
+    int httpStatus,
+    String providerStatus,
+    String providerReason,
+    String model,
+    List<QuotaViolation> quotas,
+    Long retryAfterSeconds
 ) {
 
     public ImageProviderDiagnostics {
@@ -26,6 +26,11 @@ public record ImageProviderDiagnostics(
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record QuotaViolation(String metric, String id, Long limit, String model) {
+    public record QuotaViolation(
+        String metric,
+        String id,
+        Long limit,
+        String model
+    ) {
     }
 }

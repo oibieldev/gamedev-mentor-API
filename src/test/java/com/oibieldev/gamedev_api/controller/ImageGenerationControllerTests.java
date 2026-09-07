@@ -71,8 +71,8 @@ class ImageGenerationControllerTests {
 
     @ParameterizedTest
     @MethodSource("invalidJsonRequests")
-    void rejectsInvalidJsonRequestsWithoutCallingProvider(String body) throws Exception {
-        mvc.perform(post("/api/images").contentType(MediaType.APPLICATION_JSON).content(body))
+    void rejectsInvalidJsonRequestsWithoutCallingProvider(String _body) throws Exception {
+        mvc.perform(post("/api/images").contentType(MediaType.APPLICATION_JSON).content(_body))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.code").value("INVALID_IMAGE_REQUEST"))
@@ -105,16 +105,16 @@ class ImageGenerationControllerTests {
     @ParameterizedTest
     @MethodSource("providerFailures")
     void mapsProviderFailuresToStableErrorsWithoutLeakingUpstreamDetails(
-            Reason reason, int statusCode, String code) throws Exception {
-        when(client.generateImages("Uma floresta")).thenThrow(new ImageGenerationException(reason,
+            Reason _reason, int _statusCode, String _code) throws Exception {
+        when(client.generateImages("Uma floresta")).thenThrow(new ImageGenerationException(_reason,
                 new IllegalStateException("secret upstream body and API key")));
 
         mvc.perform(post("/api/images")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"prompt\":\"Uma floresta\"}"))
-                .andExpect(status().is(statusCode))
+                .andExpect(status().is(_statusCode))
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.code").value(code))
+                .andExpect(jsonPath("$.code").value(_code))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.diagnostics").doesNotExist())
                 .andExpect(header().doesNotExist("Retry-After"))
@@ -174,10 +174,10 @@ class ImageGenerationControllerTests {
 
     @ParameterizedTest
     @MethodSource("nonTemporaryQuotaFailures")
-    void doesNotAdvertiseShortRetryAsFixForNonTemporaryQuotaFailure(Reason reason) throws Exception {
+    void doesNotAdvertiseShortRetryAsFixForNonTemporaryQuotaFailure(Reason _reason) throws Exception {
         ImageProviderDiagnostics diagnostics = new ImageProviderDiagnostics(
                 429, "RESOURCE_EXHAUSTED", null, "gemini-3.1-flash-image", List.of(), 4L);
-        when(client.generateImages("Uma floresta")).thenThrow(new ImageGenerationException(reason, null, diagnostics));
+        when(client.generateImages("Uma floresta")).thenThrow(new ImageGenerationException(_reason, null, diagnostics));
 
         mvc.perform(post("/api/images").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"prompt\":\"Uma floresta\"}"))
@@ -192,9 +192,9 @@ class ImageGenerationControllerTests {
 
     @ParameterizedTest
     @MethodSource("missingRetryDelays")
-    void omitsRetryHeaderWithoutPositiveDelay(Long delay) throws Exception {
+    void omitsRetryHeaderWithoutPositiveDelay(Long _delay) throws Exception {
         ImageProviderDiagnostics diagnostics = new ImageProviderDiagnostics(
-                429, null, null, "gemini-3.1-flash-image", List.of(), delay);
+                429, null, null, "gemini-3.1-flash-image", List.of(), _delay);
         when(client.generateImages("Uma floresta")).thenThrow(new ImageGenerationException(
                 Reason.RATE_LIMITED, null, diagnostics));
 

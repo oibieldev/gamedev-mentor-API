@@ -4,6 +4,7 @@ import java.net.SocketTimeoutException;
 import java.net.http.HttpTimeoutException;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -36,20 +37,20 @@ public class GeminiImageClient implements ImageGenerationClient {
     private final RestClient restClient;
     private final String model;
 
-    public GeminiImageClient(RestClient restClient, String model) {
-        Assert.notNull(restClient, "The Gemini image HTTP client is required.");
-        Assert.hasText(model, "The Gemini image model is required.");
-        this.restClient = restClient;
-        this.model = model;
+    public GeminiImageClient(RestClient _restClient, String _model) {
+        Assert.notNull(_restClient, "The Gemini image HTTP client is required.");
+        Assert.hasText(_model, "The Gemini image model is required.");
+        this.restClient = _restClient;
+        this.model = _model;
     }
 
     @Override
-    public ImageGenerationResponse generateImages(String prompt) {
+    public ImageGenerationResponse generateImages(String _prompt) {
         GeminiImageResponse response;
         try {
             response = restClient.post()
                     .uri("/v1/models/{model}:generateContent", model)
-                    .body(GeminiImageRequest.fromPrompt(prompt))
+                    .body(GeminiImageRequest.fromPrompt(_prompt))
                     .retrieve()
                     .body(GeminiImageResponse.class);
         } catch (RestClientResponseException exception) {
@@ -59,34 +60,34 @@ public class GeminiImageClient implements ImageGenerationClient {
             throw failure;
         } catch (ResourceAccessException exception) {
             throw new ImageGenerationException(
-                    isTimeout(exception) ? Reason.TIMEOUT : Reason.UNAVAILABLE, exception
+                    this.isTimeout(exception) ? Reason.TIMEOUT : Reason.UNAVAILABLE, exception
             );
         } catch (RestClientException exception) {
             // Timeouts can also occur while the response body is being decoded.
             throw new ImageGenerationException(
-                    isTimeout(exception) ? Reason.TIMEOUT : Reason.INVALID_RESPONSE, exception
+                    this.isTimeout(exception) ? Reason.TIMEOUT : Reason.INVALID_RESPONSE, exception
             );
         }
-        return extractImages(response);
+        return this.extractImages(response);
     }
 
-    private ImageGenerationResponse extractImages(GeminiImageResponse response) {
-        if (response == null) {
+    private ImageGenerationResponse extractImages(GeminiImageResponse _response) {
+        if (_response == null) {
             throw new ImageGenerationException(Reason.INVALID_RESPONSE);
         }
-        if (response.promptFeedback() != null) {
-            String blockReason = response.promptFeedback().blockReason();
+        if (_response.promptFeedback() != null) {
+            String blockReason = _response.promptFeedback().blockReason();
             if (blockReason != null && !blockReason.isBlank()
                     && !"BLOCK_REASON_UNSPECIFIED".equals(blockReason)) {
                 throw new ImageGenerationException(Reason.BLOCKED);
             }
         }
-        if (response.candidates() == null || response.candidates().isEmpty()
-                || response.candidates().getFirst() == null) {
+        if (_response.candidates() == null || _response.candidates().isEmpty()
+                || _response.candidates().getFirst() == null) {
             throw new ImageGenerationException(Reason.INVALID_RESPONSE);
         }
 
-        GeminiImageResponse.Candidate candidate = response.candidates().getFirst();
+        GeminiImageResponse.Candidate candidate = _response.candidates().getFirst();
         if (candidate.finishReason() != null && BLOCKED_FINISH_REASONS.contains(candidate.finishReason())) {
             throw new ImageGenerationException(Reason.BLOCKED);
         }
@@ -95,7 +96,7 @@ public class GeminiImageClient implements ImageGenerationClient {
             throw new ImageGenerationException(Reason.INVALID_RESPONSE);
         }
 
-        var images = new ArrayList<GeneratedImage>();
+        List<GeneratedImage> images = new ArrayList<>();
         for (GeminiImageResponse.Part part : candidate.content().parts()) {
             if (part == null) {
                 throw new ImageGenerationException(Reason.INVALID_RESPONSE);
@@ -123,8 +124,8 @@ public class GeminiImageClient implements ImageGenerationClient {
         return new ImageGenerationResponse(images);
     }
 
-    private boolean isTimeout(Throwable exception) {
-        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+    private boolean isTimeout(Throwable _exception) {
+        for (Throwable cause = _exception; cause != null; cause = cause.getCause()) {
             if (cause instanceof SocketTimeoutException || cause instanceof HttpTimeoutException) {
                 return true;
             }

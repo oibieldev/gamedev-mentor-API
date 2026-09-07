@@ -2,21 +2,30 @@ package com.oibieldev.gamedev_api.dto.gemini.image;
 
 import java.util.List;
 
-public record GeminiImageRequest(List<Content> contents, GenerationConfig generationConfig) {
+public record GeminiImageRequest(
+    List<Content> contents,
+    GenerationConfig generationConfig
+) {
 
-    public static GeminiImageRequest fromPrompt(String prompt) {
+    public static GeminiImageRequest fromPrompt(String _prompt) {
         return new GeminiImageRequest(
-                List.of(new Content(List.of(new Part(prompt)))),
+                List.of(new Content(List.of(new Part(_prompt)))),
                 new GenerationConfig(List.of("TEXT", "IMAGE"))
         );
     }
 
-    public record Content(List<Part> parts) {
+    public record Content(
+        List<Part> parts
+    ) {
     }
 
-    public record Part(String text) {
+    public record Part(
+        String text
+    ) {
     }
 
-    public record GenerationConfig(List<String> responseModalities) {
+    public record GenerationConfig(
+        List<String> responseModalities
+    ) {
     }
 }

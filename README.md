@@ -459,7 +459,7 @@ flowchart LR
 
 ```java
 public interface ImageGenerationClient {
-    ImageGenerationResponse generateImages(String prompt);
+    ImageGenerationResponse generateImages(String _prompt);
 }
 
 public record GeneratedImage(String mimeType, String data) {}

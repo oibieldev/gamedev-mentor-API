@@ -13,22 +13,22 @@ public class ImageGenerationException extends RuntimeException {
     private final Reason reason;
     private final ImageProviderDiagnostics diagnostics;
 
-    public ImageGenerationException(Reason reason) {
-        this(reason, null);
+    public ImageGenerationException(Reason _reason) {
+        this(_reason, null);
     }
 
-    public ImageGenerationException(Reason reason, Throwable cause) {
-        this(reason, cause, null);
+    public ImageGenerationException(Reason _reason, Throwable _cause) {
+        this(_reason, _cause, null);
     }
 
-    public ImageGenerationException(Reason reason, Throwable cause, ImageProviderDiagnostics diagnostics) {
-        super(buildMessage(reason, diagnostics), cause);
-        this.reason = reason;
-        this.diagnostics = diagnostics;
+    public ImageGenerationException(Reason _reason, Throwable _cause, ImageProviderDiagnostics _diagnostics) {
+        super(buildMessage(_reason, _diagnostics), _cause);
+        this.reason = _reason;
+        this.diagnostics = _diagnostics;
     }
 
-    private static String buildMessage(Reason reason, ImageProviderDiagnostics diagnostics) {
-        String message = switch (reason) {
+    private static String buildMessage(Reason _reason, ImageProviderDiagnostics _diagnostics) {
+        String message = switch (_reason) {
             case RATE_LIMITED -> "O provedor retornou HTTP 429 por restrição de cota ou capacidade. "
                     + "Confira as cotas e o faturamento do projeto da chave; isso não confirma que todo o limite foi consumido.";
             case QUOTA_UNAVAILABLE -> "O provedor informou cota zero para a geração de imagens. "
@@ -52,13 +52,13 @@ public class ImageGenerationException extends RuntimeException {
             case INVALID_RESPONSE -> "O provedor não retornou uma imagem válida.";
             case BLOCKED -> "A geração de imagem foi bloqueada pelo provedor.";
         };
-        if (diagnostics != null && diagnostics.hasFreeTierQuota()) {
+        if (_diagnostics != null && _diagnostics.hasFreeTierQuota()) {
             message += " A resposta do Google cita uma cota do plano gratuito. "
                     + "Confirme que a aplicação usa uma chave do projeto em que o faturamento foi ativado.";
         }
-        if (reason == Reason.RATE_LIMITED && diagnostics != null
-                && diagnostics.retryAfterSeconds() != null && diagnostics.retryAfterSeconds() > 0) {
-            message += " O provedor sugere aguardar pelo menos " + diagnostics.retryAfterSeconds()
+        if (_reason == Reason.RATE_LIMITED && _diagnostics != null
+                && _diagnostics.retryAfterSeconds() != null && _diagnostics.retryAfterSeconds() > 0) {
+            message += " O provedor sugere aguardar pelo menos " + _diagnostics.retryAfterSeconds()
                     + " segundos antes de outra tentativa; isso não garante a liberação da cota.";
         }
         return message;

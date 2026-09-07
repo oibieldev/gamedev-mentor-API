@@ -13,21 +13,20 @@ import com.oibieldev.gamedev_api.dto.image.ImageGenerationRequest;
 import com.oibieldev.gamedev_api.dto.image.ImageGenerationResponse;
 import com.oibieldev.gamedev_api.service.ImageGenerationService;
 
+import lombok.RequiredArgsConstructor;
+
 @CrossOrigin(origins = "*")
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/images")
 public class ImageGenerationController {
 
     private final ImageGenerationService service;
 
-    public ImageGenerationController(ImageGenerationService service) {
-        this.service = service;
-    }
-
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ImageGenerationResponse> generate(@RequestBody ImageGenerationRequest request) {
+    public ResponseEntity<ImageGenerationResponse> generate(@RequestBody ImageGenerationRequest _request) {
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noStore())
-                .body(service.generateImages(request));
+                .body(service.generateImages(_request));
     }
 }

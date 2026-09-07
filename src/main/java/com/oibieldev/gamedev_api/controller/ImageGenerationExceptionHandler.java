@@ -22,8 +22,8 @@ public class ImageGenerationExceptionHandler {
     }
 
     @ExceptionHandler(ImageGenerationException.class)
-    public ResponseEntity<ImageGenerationError> providerFailure(ImageGenerationException exception) {
-        HttpStatus status = switch (exception.getReason()) {
+    public ResponseEntity<ImageGenerationError> providerFailure(ImageGenerationException _exception) {
+        HttpStatus status = switch (_exception.getReason()) {
             case RATE_LIMITED, QUOTA_UNAVAILABLE, QUOTA_EXHAUSTED -> HttpStatus.TOO_MANY_REQUESTS;
             case UNAVAILABLE, BILLING_REQUIRED, CREDITS_EXHAUSTED, API_DISABLED -> HttpStatus.SERVICE_UNAVAILABLE;
             case AUTHENTICATION_FAILED, ACCESS_DENIED, MODEL_NOT_FOUND -> HttpStatus.BAD_GATEWAY;
@@ -31,7 +31,7 @@ public class ImageGenerationExceptionHandler {
             case INVALID_RESPONSE -> HttpStatus.BAD_GATEWAY;
             case BLOCKED -> HttpStatus.UNPROCESSABLE_CONTENT;
         };
-        String code = switch (exception.getReason()) {
+        String code = switch (_exception.getReason()) {
             case RATE_LIMITED -> "IMAGE_PROVIDER_RATE_LIMITED";
             case QUOTA_UNAVAILABLE -> "IMAGE_PROVIDER_QUOTA_UNAVAILABLE";
             case QUOTA_EXHAUSTED -> "IMAGE_PROVIDER_QUOTA_EXHAUSTED";
@@ -46,13 +46,13 @@ public class ImageGenerationExceptionHandler {
             case INVALID_RESPONSE -> "IMAGE_PROVIDER_INVALID_RESPONSE";
             case BLOCKED -> "IMAGE_GENERATION_BLOCKED";
         };
-        var response = ResponseEntity.status(status);
-        if (exception.getReason() == Reason.RATE_LIMITED && exception.getDiagnostics() != null) {
-            Long retryAfter = exception.getDiagnostics().retryAfterSeconds();
+        ResponseEntity.BodyBuilder response = ResponseEntity.status(status);
+        if (_exception.getReason() == Reason.RATE_LIMITED && _exception.getDiagnostics() != null) {
+            Long retryAfter = _exception.getDiagnostics().retryAfterSeconds();
             if (retryAfter != null && retryAfter > 0) {
                 response.header(HttpHeaders.RETRY_AFTER, Long.toString(retryAfter));
             }
         }
-        return response.body(new ImageGenerationError(code, exception.getMessage(), exception.getDiagnostics()));
+        return response.body(new ImageGenerationError(code, _exception.getMessage(), _exception.getDiagnostics()));
     }
 }

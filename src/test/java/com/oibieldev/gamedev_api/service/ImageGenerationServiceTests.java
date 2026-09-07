@@ -51,8 +51,8 @@ class ImageGenerationServiceTests {
 
     @ParameterizedTest
     @MethodSource("invalidRequests")
-    void rejectsInvalidRequestsBeforeCallingProvider(ImageGenerationRequest request) {
-        assertThrows(IllegalArgumentException.class, () -> service.generateImages(request));
+    void rejectsInvalidRequestsBeforeCallingProvider(ImageGenerationRequest _request) {
+        assertThrows(IllegalArgumentException.class, () -> service.generateImages(_request));
 
         verifyNoInteractions(client);
     }
@@ -83,8 +83,8 @@ class ImageGenerationServiceTests {
 
     @ParameterizedTest
     @MethodSource("invalidProviderResponses")
-    void rejectsProviderResponsesWithoutImages(ImageGenerationResponse response) {
-        when(client.generateImages("Uma floresta")).thenReturn(response);
+    void rejectsProviderResponsesWithoutImages(ImageGenerationResponse _response) {
+        when(client.generateImages("Uma floresta")).thenReturn(_response);
 
         ImageGenerationException exception = assertThrows(ImageGenerationException.class,
                 () -> service.generateImages(new ImageGenerationRequest("Uma floresta")));

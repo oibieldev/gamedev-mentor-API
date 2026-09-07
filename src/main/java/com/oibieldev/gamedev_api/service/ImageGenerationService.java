@@ -8,26 +8,25 @@ import com.oibieldev.gamedev_api.dto.image.ImageGenerationResponse;
 import com.oibieldev.gamedev_api.exception.ImageGenerationException;
 import com.oibieldev.gamedev_api.exception.ImageGenerationException.Reason;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class ImageGenerationService {
 
     public static final int MAX_PROMPT_LENGTH = 4000;
 
     private final ImageGenerationClient imageClient;
 
-    public ImageGenerationService(ImageGenerationClient imageClient) {
-        this.imageClient = imageClient;
-    }
-
-    public ImageGenerationResponse generateImages(ImageGenerationRequest request) {
-        if (request == null || request.prompt() == null || request.prompt().isBlank()) {
+    public ImageGenerationResponse generateImages(ImageGenerationRequest _request) {
+        if (_request == null || _request.prompt() == null || _request.prompt().isBlank()) {
             throw new IllegalArgumentException("Informe uma descrição para gerar a imagem.");
         }
-        if (request.prompt().length() > MAX_PROMPT_LENGTH) {
+        if (_request.prompt().length() > MAX_PROMPT_LENGTH) {
             throw new IllegalArgumentException("A descrição deve ter no máximo 4000 caracteres.");
         }
 
-        ImageGenerationResponse response = imageClient.generateImages(request.prompt().strip());
+        ImageGenerationResponse response = imageClient.generateImages(_request.prompt().strip());
         if (response == null || response.images().isEmpty()) {
             throw new ImageGenerationException(Reason.INVALID_RESPONSE);
         }

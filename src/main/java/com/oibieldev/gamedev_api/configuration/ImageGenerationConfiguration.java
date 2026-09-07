@@ -20,19 +20,19 @@ public class ImageGenerationConfiguration {
     @Bean
     @ConditionalOnProperty(name = "image.generation.provider", havingValue = "gemini", matchIfMissing = true)
     public ImageGenerationClient geminiImageClient(
-            @Value("${gemini.api.base-url}") String baseUrl,
-            @Value("${gemini.api.key}") String apiKey,
-            GeminiImageProperties properties
+            @Value("${gemini.api.base-url}") String _baseUrl,
+            @Value("${gemini.api.key}") String _apiKey,
+            GeminiImageProperties _properties
     ) {
-        var requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(properties.connectTimeout());
-        requestFactory.setReadTimeout(properties.readTimeout());
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(_properties.connectTimeout());
+        requestFactory.setReadTimeout(_properties.readTimeout());
         RestClient client = RestClient.builder()
-                .baseUrl(baseUrl)
+                .baseUrl(_baseUrl)
                 .requestFactory(requestFactory)
-                .defaultHeader("x-goog-api-key", apiKey)
+                .defaultHeader("x-goog-api-key", _apiKey)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
-        return new GeminiImageClient(client, properties.model());
+        return new GeminiImageClient(client, _properties.model());
     }
 }

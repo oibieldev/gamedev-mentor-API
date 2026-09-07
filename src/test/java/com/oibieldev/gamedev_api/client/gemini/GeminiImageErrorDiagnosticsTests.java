@@ -54,8 +54,8 @@ class GeminiImageErrorDiagnosticsTests {
 
     @ParameterizedTest
     @ValueSource(strings = {"0", "\"0\""})
-    void identifiesExplicitZeroQuotaWithoutClaimingUsageWasConsumed(String value) {
-        ImageGenerationException failure = fail(429, errorWithDetails(quota(MINUTE_QUOTA, value)));
+    void identifiesExplicitZeroQuotaWithoutClaimingUsageWasConsumed(String _value) {
+        ImageGenerationException failure = this.fail(429, errorWithDetails(quota(MINUTE_QUOTA, _value)));
 
         assertThat(failure.getReason()).isEqualTo(Reason.QUOTA_UNAVAILABLE);
         assertThat(failure.getDiagnostics().httpStatus()).isEqualTo(429);
@@ -67,14 +67,14 @@ class GeminiImageErrorDiagnosticsTests {
 
     @ParameterizedTest
     @ValueSource(strings = {"", ",\"quotaValue\":null"})
-    void missingOrNullQuotaValueIsNotZero(String valueField) {
+    void missingOrNullQuotaValueIsNotZero(String _valueField) {
         String detail = """
                 {"@type":"type.googleapis.com/google.rpc.QuotaFailure","violations":[{
                   "quotaMetric":"%s","quotaId":"%s"%s
                 }]}
-                """.formatted(METRIC, MINUTE_QUOTA, valueField);
+                """.formatted(METRIC, MINUTE_QUOTA, _valueField);
 
-        ImageGenerationException failure = fail(429, errorWithDetails(detail));
+        ImageGenerationException failure = this.fail(429, errorWithDetails(detail));
 
         assertThat(failure.getReason()).isEqualTo(Reason.RATE_LIMITED);
         assertThat(failure.getDiagnostics().quotas()).hasSize(1);
@@ -83,8 +83,8 @@ class GeminiImageErrorDiagnosticsTests {
 
     @ParameterizedTest
     @ValueSource(strings = {"-1", "1.5", "true", "\"invalid\"", "\"99999999999999999999999999\""})
-    void malformedQuotaValueIsNotCoercedToZero(String value) {
-        ImageGenerationException failure = fail(429, errorWithDetails(quota(MINUTE_QUOTA, value)));
+    void malformedQuotaValueIsNotCoercedToZero(String _value) {
+        ImageGenerationException failure = this.fail(429, errorWithDetails(quota(MINUTE_QUOTA, _value)));
 
         assertThat(failure.getReason()).isEqualTo(Reason.RATE_LIMITED);
         assertThat(failure.getDiagnostics().quotas()).hasSize(1);
@@ -96,7 +96,7 @@ class GeminiImageErrorDiagnosticsTests {
         String details = quota(MINUTE_QUOTA, "100") + "," + retry("3.25s")
                 + "," + quota(DAY_QUOTA, "1000");
 
-        ImageGenerationException failure = fail(429, errorWithDetails(details));
+        ImageGenerationException failure = this.fail(429, errorWithDetails(details));
 
         assertThat(failure.getReason()).isEqualTo(Reason.QUOTA_EXHAUSTED);
         assertThat(failure.getDiagnostics().quotas()).hasSize(2);
@@ -111,12 +111,12 @@ class GeminiImageErrorDiagnosticsTests {
                   "details":[%s]}}
                 """.formatted(quota(DAY_QUOTA, "1000"));
 
-        assertThat(fail(429, body).getReason()).isEqualTo(Reason.QUOTA_EXHAUSTED);
+        assertThat(this.fail(429, body).getReason()).isEqualTo(Reason.QUOTA_EXHAUSTED);
     }
 
     @Test
     void identifiesDepletedPrepaymentCreditsFromSpecificProviderMessage() {
-        ImageGenerationException failure = fail(429, """
+        ImageGenerationException failure = this.fail(429, """
                 {"error":{"code":429,"status":"RESOURCE_EXHAUSTED",
                   "message":"Your prepayment credits are depleted. Please add credits to continue."}}
                 """);
@@ -126,7 +126,7 @@ class GeminiImageErrorDiagnosticsTests {
 
     @Test
     void identifiesLegacyZeroQuotaMessageWhenStructuredQuotaValueIsAbsent() {
-        ImageGenerationException failure = fail(429, """
+        ImageGenerationException failure = this.fail(429, """
                 {"error":{"code":429,"status":"RESOURCE_EXHAUSTED",
                   "message":"Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-3.1-flash-image"}}
                 """);
@@ -136,7 +136,7 @@ class GeminiImageErrorDiagnosticsTests {
 
     @Test
     void structuredPositiveQuotaIsAuthoritativeOverContradictoryLegacyMessage() {
-        ImageGenerationException failure = fail(429, """
+        ImageGenerationException failure = this.fail(429, """
                 {"error":{"code":429,"status":"RESOURCE_EXHAUSTED",
                   "message":"Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_paid_tier_requests, limit: 0, model: gemini-3.1-flash-image",
                   "details":[%s]}}
@@ -151,7 +151,7 @@ class GeminiImageErrorDiagnosticsTests {
         String details = quota(MINUTE_QUOTA, "null") + "," + quota(DAY_QUOTA, "null");
         String message = "Quota exceeded for metric: " + METRIC + ", limit: 100, model: " + MODEL
                 + "\\n* Quota exceeded for metric: " + METRIC + ", limit: 0, model: " + MODEL;
-        ImageGenerationException failure = fail(429,
+        ImageGenerationException failure = this.fail(429,
                 "{\"error\":{\"message\":\"" + message + "\",\"details\":[" + details + "]}}");
 
         assertThat(failure.getReason()).isEqualTo(Reason.QUOTA_UNAVAILABLE);
@@ -164,7 +164,7 @@ class GeminiImageErrorDiagnosticsTests {
 
     @Test
     void preservesZeroLegacyLimitWhenAnEarlierSentenceReportsPositiveLimit() {
-        ImageGenerationException failure = fail(429, """
+        ImageGenerationException failure = this.fail(429, """
                 {"error":{"message":"Quota exceeded for metric: %s, limit: 100\\n* Quota exceeded for metric: %s, limit: 0"}}
                 """.formatted(METRIC, METRIC));
 
@@ -175,7 +175,7 @@ class GeminiImageErrorDiagnosticsTests {
 
     @Test
     void zeroInAnUnrelatedMessageDoesNotMeanZeroQuota() {
-        ImageGenerationException failure = fail(429, """
+        ImageGenerationException failure = this.fail(429, """
                 {"error":{"code":429,"status":"RESOURCE_EXHAUSTED",
                   "message":"The prompt contained limit: 0 and unrelated text."}}
                 """);
@@ -188,7 +188,7 @@ class GeminiImageErrorDiagnosticsTests {
         String freeTierQuota = quota("GenerateRequestsPerDayPerProjectPerModel-FreeTier", "0")
                 .replace("paid_tier_requests", "free_tier_requests");
 
-        ImageGenerationException failure = fail(429, errorWithDetails(freeTierQuota));
+        ImageGenerationException failure = this.fail(429, errorWithDetails(freeTierQuota));
 
         assertThat(failure.getReason()).isEqualTo(Reason.QUOTA_UNAVAILABLE);
         assertThat(failure.getMessage()).containsIgnoringCase("gratuito");
@@ -197,15 +197,15 @@ class GeminiImageErrorDiagnosticsTests {
 
     @ParameterizedTest
     @MethodSource("knownErrorReasons")
-    void interpretsTrustedErrorInfoBeforeStatusFallback(String reason, String domain, Reason expected) {
+    void interpretsTrustedErrorInfoBeforeStatusFallback(String _reason, String _domain, Reason _expected) {
         String detail = """
                 {"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"%s","domain":"%s"}
-                """.formatted(reason, domain);
+                """.formatted(_reason, _domain);
 
-        ImageGenerationException failure = fail(403, errorWithDetails(detail));
+        ImageGenerationException failure = this.fail(403, errorWithDetails(detail));
 
-        assertThat(failure.getReason()).isEqualTo(expected);
-        assertThat(failure.getDiagnostics().providerReason()).isEqualTo(reason);
+        assertThat(failure.getReason()).isEqualTo(_expected);
+        assertThat(failure.getDiagnostics().providerReason()).isEqualTo(_reason);
     }
 
     static Stream<Arguments> knownErrorReasons() {
@@ -221,7 +221,7 @@ class GeminiImageErrorDiagnosticsTests {
 
     @Test
     void ignoresKnownReasonFromUntrustedDomain() {
-        ImageGenerationException failure = fail(429, errorWithDetails("""
+        ImageGenerationException failure = this.fail(429, errorWithDetails("""
                 {"@type":"type.googleapis.com/google.rpc.ErrorInfo",
                   "reason":"BILLING_DISABLED","domain":"unrelated.example"}
                 """));
@@ -238,7 +238,7 @@ class GeminiImageErrorDiagnosticsTests {
                 .body(errorWithDetails(retry("3.25s") + "," + retry("12.01s")));
         server.expect(requestTo(ENDPOINT)).andRespond(response);
 
-        ImageGenerationException failure = captureFailure();
+        ImageGenerationException failure = this.captureFailure();
 
         assertThat(failure.getDiagnostics().retryAfterSeconds()).isEqualTo(13L);
     }
@@ -248,13 +248,13 @@ class GeminiImageErrorDiagnosticsTests {
         server.expect(requestTo(ENDPOINT)).andRespond(withStatus(HttpStatusCode.valueOf(429))
                 .header("Retry-After", "7").body("upstream proxy page"));
 
-        assertThat(captureFailure().getDiagnostics().retryAfterSeconds()).isEqualTo(7L);
+        assertThat(this.captureFailure().getDiagnostics().retryAfterSeconds()).isEqualTo(7L);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"-1s", "NaNs", "invalid", "999999999999999999999999999999s"})
-    void ignoresInvalidOrUnrepresentableRetryDelay(String delay) {
-        ImageGenerationException failure = fail(429, errorWithDetails(retry(delay)));
+    void ignoresInvalidOrUnrepresentableRetryDelay(String _delay) {
+        ImageGenerationException failure = this.fail(429, errorWithDetails(retry(_delay)));
 
         assertThat(failure.getReason()).isEqualTo(Reason.RATE_LIMITED);
         assertThat(failure.getDiagnostics().retryAfterSeconds()).isNull();
@@ -264,8 +264,8 @@ class GeminiImageErrorDiagnosticsTests {
     @ValueSource(strings = {"", "<html>proxy</html>", "null", "{", "{}", "[]",
             "{\"error\":\"sensitive-provider-detail\"}",
             "{\"error\":{\"details\":42}}", "{\"error\":{\"details\":[null,42,{}]}}"})
-    void malformedAndUnknownBodiesPreserveSafeHttpFallback(String body) {
-        ImageGenerationException failure = fail(429, body);
+    void malformedAndUnknownBodiesPreserveSafeHttpFallback(String _body) {
+        ImageGenerationException failure = this.fail(429, _body);
 
         assertThat(failure.getReason()).isEqualTo(Reason.RATE_LIMITED);
         assertThat(failure.getDiagnostics().httpStatus()).isEqualTo(429);
@@ -276,13 +276,13 @@ class GeminiImageErrorDiagnosticsTests {
     void oversizedBodyDoesNotPreventSafeFallback() {
         String body = "{\"error\":{\"message\":\"" + "x".repeat(1024 * 1024) + "\"}}";
 
-        assertThat(fail(429, body).getReason()).isEqualTo(Reason.RATE_LIMITED);
+        assertThat(this.fail(429, body).getReason()).isEqualTo(Reason.RATE_LIMITED);
     }
 
     @Test
     @ExtendWith(OutputCaptureExtension.class)
-    void filtersProviderTextAndUnknownMetadataFromDiagnostics(CapturedOutput output) {
-        ImageGenerationException failure = fail(429, """
+    void filtersProviderTextAndUnknownMetadataFromDiagnostics(CapturedOutput _output) {
+        ImageGenerationException failure = this.fail(429, """
                 {"error":{"code":429,"status":"SECRET_PROVIDER_STATUS",
                   "message":"sensitive-provider-detail synthetic-test-key private forest prompt",
                   "details":[
@@ -306,14 +306,14 @@ class GeminiImageErrorDiagnosticsTests {
         assertThat(failure.getDiagnostics().toString()).doesNotContain(
                 "sensitive-provider-detail", "synthetic-test-key", "private forest prompt",
                 "SECRET_PROVIDER_STATUS", "SECRET_PROVIDER_REASON", "https://example.test");
-        assertThat(output.getAll()).contains("Image provider failure:").doesNotContain(
+        assertThat(_output.getAll()).contains("Image provider failure:").doesNotContain(
                 "sensitive-provider-detail", "synthetic-test-key", "private forest prompt",
                 "SECRET_PROVIDER_STATUS", "SECRET_PROVIDER_REASON", "https://example.test");
     }
 
     @Test
     void doesNotExposeArbitraryTextInQuotaIdentifiersOrModelDimensions() {
-        ImageGenerationException failure = fail(429, errorWithDetails("""
+        ImageGenerationException failure = this.fail(429, errorWithDetails("""
                 {"@type":"type.googleapis.com/google.rpc.QuotaFailure","violations":[{
                   "quotaMetric":"private forest prompt <script>alert(1)</script>",
                   "quotaId":"sensitive-provider-detail key=synthetic-test-key",
@@ -325,10 +325,10 @@ class GeminiImageErrorDiagnosticsTests {
                 "private forest prompt", "sensitive-provider-detail", "synthetic-test-key", "<script>", "<img>");
     }
 
-    private ImageGenerationException fail(int status, String body) {
-        server.expect(requestTo(ENDPOINT)).andRespond(withStatus(HttpStatusCode.valueOf(status))
-                .contentType(MediaType.APPLICATION_JSON).body(body));
-        return captureFailure();
+    private ImageGenerationException fail(int _status, String _body) {
+        server.expect(requestTo(ENDPOINT)).andRespond(withStatus(HttpStatusCode.valueOf(_status))
+                .contentType(MediaType.APPLICATION_JSON).body(_body));
+        return this.captureFailure();
     }
 
     private ImageGenerationException captureFailure() {
@@ -340,20 +340,20 @@ class GeminiImageErrorDiagnosticsTests {
         return failure;
     }
 
-    private static String errorWithDetails(String details) {
-        return "{\"error\":{\"code\":429,\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[" + details + "]}}";
+    private static String errorWithDetails(String _details) {
+        return "{\"error\":{\"code\":429,\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[" + _details + "]}}";
     }
 
-    private static String quota(String id, String value) {
+    private static String quota(String _id, String _value) {
         return """
                 {"@type":"type.googleapis.com/google.rpc.QuotaFailure","violations":[{
                   "quotaMetric":"%s","quotaId":"%s","quotaValue":%s,
                   "quotaDimensions":{"model":"%s","location":"global"}
                 }]}
-                """.formatted(METRIC, id, value, MODEL);
+                """.formatted(METRIC, _id, _value, MODEL);
     }
 
-    private static String retry(String delay) {
-        return "{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"" + delay + "\"}";
+    private static String retry(String _delay) {
+        return "{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\",\"retryDelay\":\"" + _delay + "\"}";
     }
 }

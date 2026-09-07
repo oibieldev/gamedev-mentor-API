@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.springframework.http.HttpHeaders;
@@ -60,14 +61,14 @@ final class GeminiImageErrorMapper {
     private GeminiImageErrorMapper() {
     }
 
-    static ImageGenerationException map(RestClientResponseException exception, String model) {
-        int httpStatus = exception.getStatusCode().value();
-        JsonNode error = readError(exception);
+    static ImageGenerationException map(RestClientResponseException _exception, String _model) {
+        int httpStatus = _exception.getStatusCode().value();
+        JsonNode error = readError(_exception);
         String providerStatus = text(error.path("status"));
         if (!STATUSES.contains(providerStatus == null ? "" : providerStatus)) providerStatus = null;
         String providerReason = null;
         List<QuotaViolation> quotas = new ArrayList<>();
-        Long retryAfter = retryHeader(exception.getResponseHeaders());
+        Long retryAfter = retryHeader(_exception.getResponseHeaders());
         JsonNode details = error.path("details");
         if (details.isArray()) {
             for (JsonNode detail : details) {
@@ -103,15 +104,15 @@ final class GeminiImageErrorMapper {
         String message = text(error.path("message"));
         if (httpStatus == 429 && message != null) mergeMessageQuotas(message, quotas);
         Reason reason = classify(httpStatus, providerReason, message, quotas);
-        var diagnostics = new ImageProviderDiagnostics(
-                httpStatus, providerStatus, providerReason, safe(model, MODEL), quotas, retryAfter);
-        return new ImageGenerationException(reason, exception, diagnostics);
+        ImageProviderDiagnostics diagnostics = new ImageProviderDiagnostics(
+                httpStatus, providerStatus, providerReason, safe(_model, MODEL), quotas, retryAfter);
+        return new ImageGenerationException(reason, _exception, diagnostics);
     }
 
-    private static JsonNode readError(RestClientResponseException exception) {
-        if (exception.getResponseBodyAsByteArray().length <= MAX_BODY_BYTES) {
+    private static JsonNode readError(RestClientResponseException _exception) {
+        if (_exception.getResponseBodyAsByteArray().length <= MAX_BODY_BYTES) {
             try {
-                JsonNode root = JSON.readTree(exception.getResponseBodyAsString());
+                JsonNode root = JSON.readTree(_exception.getResponseBodyAsString());
                 if (root != null && root.path("error").isObject()) return root.path("error");
             } catch (JacksonException | IllegalArgumentException ignored) {
                 // Missing, malformed or non-JSON upstream bodies must retain a usable HTTP fallback.
@@ -120,95 +121,95 @@ final class GeminiImageErrorMapper {
         return JSON.createObjectNode();
     }
 
-    private static Reason classify(int status, String providerReason, String message, List<QuotaViolation> quotas) {
-        if ("BILLING_DISABLED".equals(providerReason)) return Reason.BILLING_REQUIRED;
-        if ("SERVICE_DISABLED".equals(providerReason)) return Reason.API_DISABLED;
-        if ("API_KEY_INVALID".equals(providerReason) || status == 401) return Reason.AUTHENTICATION_FAILED;
-        if (providerReason != null && providerReason.startsWith("API_KEY_") && providerReason.endsWith("_BLOCKED")) {
+    private static Reason classify(int _status, String _providerReason, String _message, List<QuotaViolation> _quotas) {
+        if ("BILLING_DISABLED".equals(_providerReason)) return Reason.BILLING_REQUIRED;
+        if ("SERVICE_DISABLED".equals(_providerReason)) return Reason.API_DISABLED;
+        if ("API_KEY_INVALID".equals(_providerReason) || _status == 401) return Reason.AUTHENTICATION_FAILED;
+        if (_providerReason != null && _providerReason.startsWith("API_KEY_") && _providerReason.endsWith("_BLOCKED")) {
             return Reason.ACCESS_DENIED;
         }
-        if (status == 403) return Reason.ACCESS_DENIED;
-        if (status == 404) return Reason.MODEL_NOT_FOUND;
-        if (status != 429) return Reason.UNAVAILABLE;
+        if (_status == 403) return Reason.ACCESS_DENIED;
+        if (_status == 404) return Reason.MODEL_NOT_FOUND;
+        if (_status != 429) return Reason.UNAVAILABLE;
 
         // This narrow textual fallback is needed when billing failures have no ErrorInfo.
-        String normalized = message == null ? "" : message.stripLeading().toLowerCase(Locale.ROOT);
+        String normalized = _message == null ? "" : _message.stripLeading().toLowerCase(Locale.ROOT);
         if (normalized.startsWith("your prepayment credits are depleted")
                 || normalized.startsWith("prepayment credits are depleted")) {
             return Reason.CREDITS_EXHAUSTED;
         }
-        if (quotas.stream().anyMatch(quota -> Long.valueOf(0).equals(quota.limit()))) {
+        if (_quotas.stream().anyMatch(quota -> Long.valueOf(0).equals(quota.limit()))) {
             return Reason.QUOTA_UNAVAILABLE;
         }
         // A daily or unspecified quota must not be described as just a per-minute throttle.
-        if ("RESOURCE_QUOTA_EXCEEDED".equals(providerReason)
-                || quotas.stream().anyMatch(quota -> quota.id() == null || !quota.id().contains("PerMinute"))) {
+        if ("RESOURCE_QUOTA_EXCEEDED".equals(_providerReason)
+                || _quotas.stream().anyMatch(quota -> quota.id() == null || !quota.id().contains("PerMinute"))) {
             return Reason.QUOTA_EXHAUSTED;
         }
         return Reason.RATE_LIMITED;
     }
 
-    private static void mergeMessageQuotas(String message, List<QuotaViolation> quotas) {
+    private static void mergeMessageQuotas(String _message, List<QuotaViolation> _quotas) {
         Map<String, Set<Long>> limitsByMetric = new LinkedHashMap<>();
-        var matcher = MESSAGE_QUOTA.matcher(message);
+        Matcher matcher = MESSAGE_QUOTA.matcher(_message);
         while (matcher.find()) {
             String metric = safe(matcher.group(1), METRIC);
             Long limit = nonnegativeLong(matcher.group(2));
             if (metric == null || limit == null) continue;
             limitsByMetric.computeIfAbsent(metric, ignored -> new LinkedHashSet<>()).add(limit);
         }
-        for (var entry : limitsByMetric.entrySet()) {
+        for (Map.Entry<String, Set<Long>> entry : limitsByMetric.entrySet()) {
             String metric = entry.getKey();
-            List<QuotaViolation> matching = quotas.stream().filter(quota -> metric.equals(quota.metric())).toList();
+            List<QuotaViolation> matching = _quotas.stream().filter(quota -> metric.equals(quota.metric())).toList();
             // Supplied structured values take precedence over prose.
             if (!matching.isEmpty() && matching.stream().allMatch(quota -> quota.limit() != null)) continue;
             if (matching.size() == 1 && entry.getValue().size() == 1) {
                 QuotaViolation quota = matching.getFirst();
-                quotas.set(quotas.indexOf(quota), new QuotaViolation(metric, quota.id(), entry.getValue().iterator().next(), quota.model()));
+                _quotas.set(_quotas.indexOf(quota), new QuotaViolation(metric, quota.id(), entry.getValue().iterator().next(), quota.model()));
             } else {
                 // Minute/day quotas can share a metric. Preserve ambiguous values without inventing an ID association.
                 for (Long limit : entry.getValue()) {
-                    if (quotas.size() >= MAX_QUOTAS) break;
-                    quotas.add(new QuotaViolation(metric, null, limit, null));
+                    if (_quotas.size() >= MAX_QUOTAS) break;
+                    _quotas.add(new QuotaViolation(metric, null, limit, null));
                 }
             }
         }
     }
 
-    private static String text(JsonNode node) {
-        return node.isString() ? node.asString() : null;
+    private static String text(JsonNode _node) {
+        return _node.isString() ? _node.asString() : null;
     }
 
-    private static String safe(String value, Pattern pattern) {
-        return value != null && value.length() <= 220 && pattern.matcher(value).matches() ? value : null;
+    private static String safe(String _value, Pattern _pattern) {
+        return _value != null && _value.length() <= 220 && _pattern.matcher(_value).matches() ? _value : null;
     }
 
-    private static Long nonnegativeLong(JsonNode node) {
-        if (!node.isString() && !node.isIntegralNumber()) return null;
-        return nonnegativeLong(node.isString() ? node.asString() : node.toString());
+    private static Long nonnegativeLong(JsonNode _node) {
+        if (!_node.isString() && !_node.isIntegralNumber()) return null;
+        return nonnegativeLong(_node.isString() ? _node.asString() : _node.toString());
     }
 
-    private static Long nonnegativeLong(String value) {
-        if (value == null || !value.matches("[0-9]{1,19}")) return null;
+    private static Long nonnegativeLong(String _value) {
+        if (_value == null || !_value.matches("[0-9]{1,19}")) return null;
         try {
-            return Long.valueOf(value);
+            return Long.valueOf(_value);
         } catch (NumberFormatException ignored) {
             return null;
         }
     }
 
-    private static Long retryDuration(String value) {
-        if (value == null || !value.matches("[0-9]{1,18}(\\.[0-9]{1,9})?s")) return null;
+    private static Long retryDuration(String _value) {
+        if (_value == null || !_value.matches("[0-9]{1,18}(\\.[0-9]{1,9})?s")) return null;
         try {
-            return new BigDecimal(value.substring(0, value.length() - 1))
+            return new BigDecimal(_value.substring(0, _value.length() - 1))
                     .setScale(0, RoundingMode.CEILING).longValueExact();
         } catch (ArithmeticException ignored) {
             return null;
         }
     }
 
-    private static Long retryHeader(HttpHeaders headers) {
-        String value = headers == null ? null : headers.getFirst(HttpHeaders.RETRY_AFTER);
+    private static Long retryHeader(HttpHeaders _headers) {
+        String value = _headers == null ? null : _headers.getFirst(HttpHeaders.RETRY_AFTER);
         Long seconds = nonnegativeLong(value);
         if (seconds != null || value == null || value.length() > 64) return seconds;
         try {
@@ -220,9 +221,9 @@ final class GeminiImageErrorMapper {
         }
     }
 
-    private static Long maximum(Long first, Long second) {
-        if (first == null) return second;
-        if (second == null) return first;
-        return Math.max(first, second);
+    private static Long maximum(Long _first, Long _second) {
+        if (_first == null) return _second;
+        if (_second == null) return _first;
+        return Math.max(_first, _second);
     }
 }

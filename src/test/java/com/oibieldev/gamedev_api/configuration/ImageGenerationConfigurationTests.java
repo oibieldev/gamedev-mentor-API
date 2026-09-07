@@ -100,16 +100,16 @@ class ImageGenerationConfigurationTests {
             "gemini.image.read-timeout=not-a-duration",
             "gemini.image.read-timeout=2147483648ms"
     })
-    void invalidImageSettingsFailAtStartup(String property) {
-        contextRunner.withPropertyValues(property).run(context -> assertThat(context).hasFailed());
+    void invalidImageSettingsFailAtStartup(String _property) {
+        contextRunner.withPropertyValues(_property).run(context -> assertThat(context).hasFailed());
     }
 
     @Configuration(proxyBeanMethods = false)
     static class RequiredClientConfiguration {
 
         @Bean
-        ClientConsumer clientConsumer(ImageGenerationClient client) {
-            return new ClientConsumer(client);
+        ClientConsumer clientConsumer(ImageGenerationClient _client) {
+            return new ClientConsumer(_client);
         }
     }
 

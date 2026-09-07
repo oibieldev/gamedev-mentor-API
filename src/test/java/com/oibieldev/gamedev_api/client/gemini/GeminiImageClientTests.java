@@ -107,10 +107,10 @@ class GeminiImageClientTests {
 
     @ParameterizedTest
     @MethodSource("invalidResponses")
-    void rejectsMalformedAndMissingImages(String response) {
-        server.expect(requestTo(ENDPOINT)).andRespond(withSuccess(response, MediaType.APPLICATION_JSON));
+    void rejectsMalformedAndMissingImages(String _response) {
+        server.expect(requestTo(ENDPOINT)).andRespond(withSuccess(_response, MediaType.APPLICATION_JSON));
 
-        assertFailure(Reason.INVALID_RESPONSE);
+        this.assertFailure(Reason.INVALID_RESPONSE);
     }
 
     static Stream<String> invalidResponses() {
@@ -136,22 +136,22 @@ class GeminiImageClientTests {
 
     @ParameterizedTest
     @ValueSource(strings = {"MAX_TOKENS", "NO_IMAGE", "OTHER", "FINISH_REASON_UNSPECIFIED", ""})
-    void doesNotReturnIncompleteCandidates(String finishReason) {
+    void doesNotReturnIncompleteCandidates(String _finishReason) {
         server.expect(requestTo(ENDPOINT)).andRespond(withSuccess("""
                 {"candidates":[{"finishReason":"%s","content":{"parts":[%s]}}]}
-                """.formatted(finishReason, IMAGE_PART), MediaType.APPLICATION_JSON));
+                """.formatted(_finishReason, IMAGE_PART), MediaType.APPLICATION_JSON));
 
-        assertFailure(Reason.INVALID_RESPONSE);
+        this.assertFailure(Reason.INVALID_RESPONSE);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"SAFETY", "BLOCKLIST", "PROHIBITED_CONTENT", "IMAGE_SAFETY", "OTHER"})
-    void mapsPromptBlocks(String blockReason) {
+    void mapsPromptBlocks(String _blockReason) {
         server.expect(requestTo(ENDPOINT)).andRespond(withSuccess("""
                 {"promptFeedback":{"blockReason":"%s"}}
-                """.formatted(blockReason), MediaType.APPLICATION_JSON));
+                """.formatted(_blockReason), MediaType.APPLICATION_JSON));
 
-        assertFailure(Reason.BLOCKED);
+        this.assertFailure(Reason.BLOCKED);
     }
 
     @ParameterizedTest
@@ -159,12 +159,12 @@ class GeminiImageClientTests {
             "SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII",
             "IMAGE_SAFETY", "IMAGE_PROHIBITED_CONTENT", "IMAGE_RECITATION", "ESCALATION"
     })
-    void neverReturnsImagesFromBlockedCandidates(String finishReason) {
+    void neverReturnsImagesFromBlockedCandidates(String _finishReason) {
         server.expect(requestTo(ENDPOINT)).andRespond(withSuccess("""
                 {"candidates":[{"finishReason":"%s","content":{"parts":[%s]}}]}
-                """.formatted(finishReason, IMAGE_PART), MediaType.APPLICATION_JSON));
+                """.formatted(_finishReason, IMAGE_PART), MediaType.APPLICATION_JSON));
 
-        assertFailure(Reason.BLOCKED);
+        this.assertFailure(Reason.BLOCKED);
     }
 
     @Test
@@ -181,12 +181,12 @@ class GeminiImageClientTests {
 
     @ParameterizedTest
     @ValueSource(ints = {400, 401, 403, 404, 408, 429, 500, 503, 504})
-    void mapsHttpFailuresWithoutRetryingOrExposingProviderDetails(int status) {
-        server.expect(requestTo(ENDPOINT)).andRespond(withStatus(HttpStatusCode.valueOf(status))
+    void mapsHttpFailuresWithoutRetryingOrExposingProviderDetails(int _status) {
+        server.expect(requestTo(ENDPOINT)).andRespond(withStatus(HttpStatusCode.valueOf(_status))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body("{\"error\":\"sensitive-provider-detail\"}"));
 
-        assertFailure(switch (status) {
+        this.assertFailure(switch (_status) {
             case 401 -> Reason.AUTHENTICATION_FAILED;
             case 403 -> Reason.ACCESS_DENIED;
             case 404 -> Reason.MODEL_NOT_FOUND;
@@ -197,10 +197,10 @@ class GeminiImageClientTests {
 
     @ParameterizedTest
     @MethodSource("timeouts")
-    void mapsConnectionAndReadTimeoutsWithoutRetrying(IOException timeout) {
-        server.expect(requestTo(ENDPOINT)).andRespond(withException(timeout));
+    void mapsConnectionAndReadTimeoutsWithoutRetrying(IOException _timeout) {
+        server.expect(requestTo(ENDPOINT)).andRespond(withException(_timeout));
 
-        assertFailure(Reason.TIMEOUT);
+        this.assertFailure(Reason.TIMEOUT);
     }
 
     static Stream<IOException> timeouts() {
@@ -215,24 +215,24 @@ class GeminiImageClientTests {
     void mapsNetworkErrorsToUnavailable() {
         server.expect(requestTo(ENDPOINT)).andRespond(withException(new IOException("sensitive-provider-detail")));
 
-        assertFailure(Reason.UNAVAILABLE);
+        this.assertFailure(Reason.UNAVAILABLE);
     }
 
     @Test
     void mapsUnsupportedResponseContentTypeToInvalidResponse() {
         server.expect(requestTo(ENDPOINT)).andRespond(withSuccess("upstream proxy page", MediaType.TEXT_HTML));
 
-        assertFailure(Reason.INVALID_RESPONSE);
+        this.assertFailure(Reason.INVALID_RESPONSE);
     }
 
-    private static String responseWithParts(String parts) {
-        return "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":" + parts + "}}]}";
+    private static String responseWithParts(String _parts) {
+        return "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":" + _parts + "}}]}";
     }
 
-    private void assertFailure(Reason expected) {
+    private void assertFailure(Reason _expected) {
         assertThatThrownBy(() -> client.generateImages("forest"))
                 .isInstanceOfSatisfying(ImageGenerationException.class, exception -> {
-                    assertThat(exception.getReason()).isEqualTo(expected);
+                    assertThat(exception.getReason()).isEqualTo(_expected);
                     assertThat(exception.getMessage()).doesNotContain(
                             "sensitive-provider-detail", "synthetic-test-key", "https://example.test"
                     );
