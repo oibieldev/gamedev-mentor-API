@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
@@ -22,6 +24,7 @@ import com.oibieldev.gamedev_api.exception.ImageGenerationException.Reason;
 
 public class GeminiImageClient implements ImageGenerationClient {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(GeminiImageClient.class);
     private static final Set<String> SUPPORTED_MIME_TYPES = Set.of(
             "image/png", "image/jpeg", "image/webp"
     );
@@ -50,9 +53,10 @@ public class GeminiImageClient implements ImageGenerationClient {
                     .retrieve()
                     .body(GeminiImageResponse.class);
         } catch (RestClientResponseException exception) {
-            Reason reason = exception.getStatusCode().value() == 429
-                    ? Reason.RATE_LIMITED : Reason.UNAVAILABLE;
-            throw new ImageGenerationException(reason, exception);
+            ImageGenerationException failure = GeminiImageErrorMapper.map(exception, model);
+            // Log only filtered facts, never the upstream body, request prompt or exception cause.
+            LOGGER.warn("Image provider failure: reason={}, diagnostics={}", failure.getReason(), failure.getDiagnostics());
+            throw failure;
         } catch (ResourceAccessException exception) {
             throw new ImageGenerationException(
                     isTimeout(exception) ? Reason.TIMEOUT : Reason.UNAVAILABLE, exception

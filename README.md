@@ -479,7 +479,7 @@ Image creation is an explicit request from the student. The chat does not automa
 - Model, provider, and credentials are server configuration, not client request fields.
 - There are no automatic retries or provider fallbacks: repeating a generation may incur another charge.
 
-Base64 increases response size and is buffered in memory. As usage grows, introduce response-size/concurrency limits, authentication and per-user quotas, then asynchronous jobs and object storage if needed. Editing, aspect-ratio controls, transparency guarantees, pixel dimensions, and deterministic sprite sheets are outside this first contract. The existing browser test page still exercises chat; use an HTTP client for images.
+Base64 increases response size and is buffered in memory. As usage grows, introduce response-size/concurrency limits, authentication and per-user quotas, then asynchronous jobs and object storage if needed. Editing, aspect-ratio controls, transparency guarantees, pixel dimensions, and deterministic sprite sheets are outside this first contract. The browser test page supports both chat and image generation: select the image mode to send a prompt, preview the returned images, and download them.
 
 ## Provider Configuration
 
@@ -600,12 +600,52 @@ Image errors have a stable code and a safe, human-readable message:
 |---|---|---|
 | `400` | `INVALID_IMAGE_REQUEST` | Missing/invalid JSON, missing/blank prompt, or prompt longer than 4,000 characters. |
 | `422` | `IMAGE_GENERATION_BLOCKED` | Provider explicitly blocked the prompt or generated content. |
-| `429` | `IMAGE_PROVIDER_RATE_LIMITED` | Provider quota/rate limit reached. |
+| `429` | `IMAGE_PROVIDER_RATE_LIMITED` | Per-minute throttling, or an unspecified quota/capacity restriction; does not prove the allowance was consumed. |
+| `429` | `IMAGE_PROVIDER_QUOTA_UNAVAILABLE` | Provider explicitly reported a quota value of zero. |
+| `429` | `IMAGE_PROVIDER_QUOTA_EXHAUSTED` | Daily or another identified resource quota was exceeded. |
+| `503` | `IMAGE_PROVIDER_BILLING_REQUIRED` | Provider explicitly reported disabled billing for the key's project. |
+| `503` | `IMAGE_PROVIDER_CREDITS_EXHAUSTED` | Provider explicitly reported depleted prepayment credits. |
+| `503` | `IMAGE_PROVIDER_API_DISABLED` | Provider reported that the API is disabled in the key's project. |
+| `502` | `IMAGE_PROVIDER_AUTHENTICATION_FAILED` | Upstream rejected the configured credentials. |
+| `502` | `IMAGE_PROVIDER_ACCESS_DENIED` | Upstream denied access, including API-key restrictions. |
+| `502` | `IMAGE_PROVIDER_MODEL_NOT_FOUND` | Upstream returned 404 for the configured model/operation. |
 | `502` | `IMAGE_PROVIDER_INVALID_RESPONSE` | Missing images, malformed JSON, invalid MIME/Base64, or incomplete generation. |
-| `503` | `IMAGE_PROVIDER_UNAVAILABLE` | Provider HTTP failure other than rate limiting, or connection failure. |
+| `503` | `IMAGE_PROVIDER_UNAVAILABLE` | Other provider HTTP failures, or connection failure. |
 | `504` | `IMAGE_PROVIDER_TIMEOUT` | Provider request timed out. |
 
 Unsupported content types receive Spring MVC's standard `415` response. Provider response bodies, prompts, and credentials are not included in image error messages. This error contract applies to `/api/images`; existing chat errors retain their behavior.
+
+### Diagnose Image Provider Errors
+
+The browser already displays the API's `message`, so the specific guidance appears without a frontend change. After restarting the application, make one image request and inspect that message. The terminal also logs `Image provider failure` with the classified reason and filtered diagnostic fields. In the browser's developer tools, Network → `/api/images` → Response exposes the same structured facts under optional `diagnostics`:
+
+```json
+{
+  "code": "IMAGE_PROVIDER_QUOTA_UNAVAILABLE",
+  "message": "O provedor informou cota zero para a geração de imagens. ...",
+  "diagnostics": {
+    "httpStatus": 429,
+    "providerStatus": "RESOURCE_EXHAUSTED",
+    "model": "gemini-3.1-flash-image",
+    "quotas": [
+      {
+        "metric": "generativelanguage.googleapis.com/generate_content_free_tier_requests",
+        "id": "GenerateRequestsPerDayPerProjectPerModel-FreeTier",
+        "limit": 0,
+        "model": "gemini-3.1-flash-image"
+      }
+    ]
+  }
+}
+```
+
+This example is synthetic and its `message` is abbreviated. Missing facts are omitted rather than guessed. A missing quota value is **not** zero. A free-tier quota in the response adds guidance to check the project of the active key; it does not prove that the key belongs to the wrong project.
+
+`GeminiImageErrorMapper` interprets the `generateContent` error envelope and the typed Google RPC `ErrorInfo`, `QuotaFailure`, and `RetryInfo` details. Known error reasons are accepted only from Google's documented infrastructure/service domains. A narrow compatibility fallback recognizes explicit quota sentences (`Quota exceeded for metric: ..., limit: 0`) and the specific prepayment-depletion message when structured information is absent. Generic advice to check billing is never enough to classify a billing failure. See the [Google RPC error detail definitions](https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto), [Google infrastructure error reasons](https://github.com/googleapis/googleapis/blob/master/google/api/error_reason.proto), and [Gemini billing guide](https://ai.google.dev/gemini-api/docs/billing).
+
+Diagnostics contain only filtered status/reason, model, quota identifiers/values, and a provider retry hint when supplied. No raw provider message, metadata, project identifiers, debug stack, prompt, API key, or provider links are returned or logged. Error parsing is limited to 64 KiB and 20 quota violations; malformed or larger bodies retain a safe HTTP-based fallback.
+
+Positive `RetryInfo` durations are rounded up to seconds and combined with `Retry-After` using the longer delay. The endpoint sends a `Retry-After` header only for `IMAGE_PROVIDER_RATE_LIMITED`, never as a proposed fix for zero quota, daily quota, or billing failures. A provider hint may still appear in `diagnostics` for investigation. No request is retried automatically.
 
 ---
 
@@ -851,7 +891,7 @@ $env:GEMINI_API_KEY = 'your-local-key'
 .\mvnw.cmd spring-boot:run
 ```
 
-Keep real keys in your local environment. The application serves the chat test page at `http://localhost:8080/`.
+Keep real keys in your local environment. The application serves the chat and image generation test page at `http://localhost:8080/`.
 
 ## Verify Locally
 

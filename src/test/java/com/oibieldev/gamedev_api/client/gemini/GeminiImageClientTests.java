@@ -186,7 +186,13 @@ class GeminiImageClientTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body("{\"error\":\"sensitive-provider-detail\"}"));
 
-        assertFailure(status == 429 ? Reason.RATE_LIMITED : Reason.UNAVAILABLE);
+        assertFailure(switch (status) {
+            case 401 -> Reason.AUTHENTICATION_FAILED;
+            case 403 -> Reason.ACCESS_DENIED;
+            case 404 -> Reason.MODEL_NOT_FOUND;
+            case 429 -> Reason.RATE_LIMITED;
+            default -> Reason.UNAVAILABLE;
+        });
     }
 
     @ParameterizedTest

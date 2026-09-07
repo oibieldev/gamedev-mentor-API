@@ -1,4 +1,11 @@
 package com.oibieldev.gamedev_api.dto.image;
 
-public record ImageGenerationError(String code, String message) {
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record ImageGenerationError(String code, String message, ImageProviderDiagnostics diagnostics) {
+
+    public ImageGenerationError(String code, String message) {
+        this(code, message, null);
+    }
 }
