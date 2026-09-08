@@ -8,7 +8,7 @@ import org.springframework.util.Assert;
 
 @ConfigurationProperties("gemini.image")
 public record GeminiImageProperties(
-    @DefaultValue("gemini-3.1-flash-image") String model,
+    @DefaultValue("gemini-3.1-flash-lite-image") String model,
     @DefaultValue("10s") Duration connectTimeout,
     @DefaultValue("120s") Duration readTimeout
 ) {

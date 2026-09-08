@@ -37,7 +37,7 @@ class ImageGenerationConfigurationTests {
             assertThat(context.getBean(ImageGenerationClient.class)).isInstanceOf(GeminiImageClient.class);
             assertThat(context).doesNotHaveBean(RestClient.class);
             GeminiImageProperties properties = context.getBean(GeminiImageProperties.class);
-            assertThat(properties.model()).isEqualTo("gemini-3.1-flash-image");
+            assertThat(properties.model()).isEqualTo("gemini-3.1-flash-lite-image");
             assertThat(properties.connectTimeout()).isEqualTo(Duration.ofSeconds(10));
             assertThat(properties.readTimeout()).isEqualTo(Duration.ofSeconds(120));
         });

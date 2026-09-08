@@ -23,7 +23,7 @@
   {
     "name": "gemini.image.model",
     "type": "java.lang.String",
-    "defaultValue": "gemini-3.1-flash-image",
+    "defaultValue": "gemini-3.1-flash-lite-image",
     "description": "Gemini model used only for image generation."
   },
   {

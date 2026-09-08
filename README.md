@@ -488,7 +488,7 @@ Base64 increases response size and is buffered in memory. As usage grows, introd
 | `image.generation.provider` | `IMAGE_GENERATION_PROVIDER` | `gemini` |
 | `gemini.api.key` | `GEMINI_API_KEY` | Required for real provider calls |
 | `gemini.api.base-url` | Spring property override | `https://generativelanguage.googleapis.com` |
-| `gemini.image.model` | `GEMINI_IMAGE_MODEL` | `gemini-3.1-flash-image` |
+| `gemini.image.model` | `GEMINI_IMAGE_MODEL` | `gemini-3.1-flash-lite-image` |
 | `gemini.image.connect-timeout` | `GEMINI_IMAGE_CONNECT_TIMEOUT` | `10s` |
 | `gemini.image.read-timeout` | `GEMINI_IMAGE_READ_TIMEOUT` | `120s` |
 
