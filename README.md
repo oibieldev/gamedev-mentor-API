@@ -125,8 +125,9 @@ Responsible for HTTP concerns.
 
 Main responsibilities:
 
+- expose multipart chat at `/api/chat` and JSON image generation at `/api/images`;
 - receive the student's prompt;
-- receive the optional project file;
+- receive the optional project file for chat;
 - delegate the request to the service layer;
 - return the response.
 
@@ -439,7 +440,7 @@ The image feature follows those existing layers. Text and image generation have 
 
 ```mermaid
 flowchart LR
-    A[POST /api/images] --> B[ImageGenerationController]
+    A[POST /api/images] --> B[MentorController.generateImages]
     B --> C[ImageGenerationService]
     C --> D[ImageGenerationClient]
     D --> E[GeminiImageClient]
@@ -450,12 +451,12 @@ flowchart LR
 
 | Component | Responsibility |
 |---|---|
-| `ImageGenerationController` | Accept JSON and return a synchronous response with `Cache-Control: no-store`. |
+| `MentorController` | Expose `/api/chat` and `/api/images` as separate methods; the image endpoint accepts JSON and returns a synchronous response with `Cache-Control: no-store`. |
 | `ImageGenerationService` | Validate and normalize the prompt, call the provider once, reject empty results. |
 | `ImageGenerationClient` | Define the provider-independent image-generation contract. |
 | `GeminiImageClient` | Map requests to Gemini, extract final image parts, validate MIME/Base64, normalize upstream failures. |
 | `ImageGenerationConfiguration` | Select the provider and configure a dedicated HTTP client and timeouts. |
-| `ImageGenerationExceptionHandler` | Map image errors to stable HTTP responses; scoped to the image controller. |
+| `ImageGenerationExceptionHandler` | Map image errors to stable HTTP responses; generic input errors are handled only for the method receiving `ImageGenerationRequest`, preserving chat error handling. |
 
 ```java
 public interface ImageGenerationClient {

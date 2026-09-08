@@ -1,21 +1,30 @@
 package com.oibieldev.gamedev_api.controller;
 
+import java.util.Arrays;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.HandlerMethod;
 
 import com.oibieldev.gamedev_api.dto.image.ImageGenerationError;
+import com.oibieldev.gamedev_api.dto.image.ImageGenerationRequest;
 import com.oibieldev.gamedev_api.exception.ImageGenerationException;
 import com.oibieldev.gamedev_api.exception.ImageGenerationException.Reason;
 
-@RestControllerAdvice(assignableTypes = ImageGenerationController.class)
+@RestControllerAdvice(assignableTypes = MentorController.class)
 public class ImageGenerationExceptionHandler {
 
     @ExceptionHandler({IllegalArgumentException.class, HttpMessageNotReadableException.class})
-    public ResponseEntity<ImageGenerationError> invalidRequest() {
+    public ResponseEntity<ImageGenerationError> invalidRequest(RuntimeException _exception, HandlerMethod _handlerMethod) {
+        // The controller also handles chat; preserve its normal exception handling.
+        if (Arrays.stream(_handlerMethod.getMethodParameters())
+                .noneMatch(parameter -> parameter.getParameterType() == ImageGenerationRequest.class)) {
+            throw _exception;
+        }
         return ResponseEntity.badRequest().body(new ImageGenerationError(
                 "INVALID_IMAGE_REQUEST",
                 "Envie um JSON com prompt não vazio de até 4000 caracteres."));

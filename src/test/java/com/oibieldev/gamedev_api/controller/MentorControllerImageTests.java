@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,18 +34,26 @@ import com.oibieldev.gamedev_api.dto.image.ImageProviderDiagnostics.QuotaViolati
 import com.oibieldev.gamedev_api.exception.ImageGenerationException;
 import com.oibieldev.gamedev_api.exception.ImageGenerationException.Reason;
 import com.oibieldev.gamedev_api.service.ImageGenerationService;
+import com.oibieldev.gamedev_api.service.MentorService;
 
-class ImageGenerationControllerTests {
+class MentorControllerImageTests {
 
     private ImageGenerationClient client;
+    private MentorService mentorService;
     private MockMvc mvc;
 
     @BeforeEach
     void setUp() {
         client = mock(ImageGenerationClient.class);
-        mvc = MockMvcBuilders.standaloneSetup(new ImageGenerationController(new ImageGenerationService(client)))
+        mentorService = mock(MentorService.class);
+        mvc = MockMvcBuilders.standaloneSetup(new MentorController(mentorService, new ImageGenerationService(client)))
                 .setControllerAdvice(new ImageGenerationExceptionHandler())
                 .build();
+    }
+
+    @AfterEach
+    void doesNotCallMentorService() {
+        verifyNoInteractions(mentorService);
     }
 
     @Test

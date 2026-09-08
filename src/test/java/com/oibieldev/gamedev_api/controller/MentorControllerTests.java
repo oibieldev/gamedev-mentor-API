@@ -1,6 +1,10 @@
 package com.oibieldev.gamedev_api.controller;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -9,36 +13,50 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.charset.StandardCharsets;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.oibieldev.gamedev_api.client.TextGenerationClient;
+import com.oibieldev.gamedev_api.service.ImageGenerationService;
 import com.oibieldev.gamedev_api.service.MentorService;
 import com.oibieldev.gamedev_api.service.ProjectInterpreterService;
+
+import jakarta.servlet.ServletException;
 
 class MentorControllerTests {
 
     private TextGenerationClient textClient;
     private ProjectInterpreterService interpreter;
+    private ImageGenerationService imageService;
     private MockMvc mvc;
 
     @BeforeEach
     void setUp() {
         textClient = mock(TextGenerationClient.class);
         interpreter = mock(ProjectInterpreterService.class);
-        mvc = MockMvcBuilders.standaloneSetup(new MentorController(new MentorService(textClient, interpreter)))
+        imageService = mock(ImageGenerationService.class);
+        mvc = MockMvcBuilders.standaloneSetup(new MentorController(new MentorService(textClient, interpreter), imageService))
                 .setControllerAdvice(new ImageGenerationExceptionHandler())
                 .build();
+    }
+
+    @AfterEach
+    void doesNotCallImageService() {
+        verifyNoInteractions(imageService);
     }
 
     @Test
@@ -99,6 +117,38 @@ class MentorControllerTests {
         mvc.perform(multipart("/api/chat")).andExpect(status().isBadRequest());
 
         verifyNoInteractions(textClient, interpreter);
+    }
+
+    @Test
+    void doesNotConvertInvalidChatProjectIntoImageRequestError() {
+        MockMultipartFile project = new MockMultipartFile("file", "projeto.txt",
+                MediaType.TEXT_PLAIN_VALUE, new byte[] {1});
+        IllegalArgumentException failure = new IllegalArgumentException("Formato de projeto não suportado.");
+        when(interpreter.extractProjectJson(project)).thenThrow(failure);
+
+        ServletException exception = assertThrows(ServletException.class,
+                () -> mvc.perform(multipart("/api/chat").file(promptPart()).file(project)));
+
+        assertSame(failure, exception.getCause());
+        verify(interpreter).extractProjectJson(project);
+        verifyNoMoreInteractions(interpreter);
+        verifyNoInteractions(textClient);
+    }
+
+    @Test
+    void preservesDefaultHandlingForUnreadableChatMessage() throws Exception {
+        HttpMessageNotReadableException failure = new HttpMessageNotReadableException(
+                "Mensagem de chat inválida.", new MockHttpInputMessage(new byte[0]));
+        when(textClient.generateResponse(anyString())).thenThrow(failure);
+
+        mvc.perform(multipart("/api/chat").file(promptPart()))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(not(containsString("INVALID_IMAGE_REQUEST"))))
+                .andExpect(result -> assertSame(failure, result.getResolvedException()));
+
+        verify(textClient).generateResponse(anyString());
+        verifyNoMoreInteractions(textClient);
+        verifyNoInteractions(interpreter);
     }
 
     private static MockMultipartFile promptPart() {
