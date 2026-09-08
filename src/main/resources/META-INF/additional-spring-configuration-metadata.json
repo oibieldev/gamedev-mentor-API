@@ -2,16 +2,40 @@
   {
     "name": "gemini.api.model",
     "type": "java.lang.String",
-    "description": "A description for 'gemini.api.model'"
+    "description": "Gemini model used only for text mentoring."
   },
   {
     "name": "gemini.api.key",
     "type": "java.lang.String",
-    "description": "A description for 'gemini.api.key'"
+    "description": "Backend-only API key shared by Gemini text and image clients."
   },
   {
     "name": "gemini.api.base-url",
     "type": "java.lang.String",
-    "description": "A description for 'gemini.api.base-url'"
+    "description": "Base URL for the Gemini API."
+  },
+  {
+    "name": "image.generation.provider",
+    "type": "java.lang.String",
+    "defaultValue": "gemini",
+    "description": "Selected image provider; the bundled implementation supports gemini."
+  },
+  {
+    "name": "gemini.image.model",
+    "type": "java.lang.String",
+    "defaultValue": "gemini-3.1-flash-lite-image",
+    "description": "Gemini model used only for image generation."
+  },
+  {
+    "name": "gemini.image.connect-timeout",
+    "type": "java.time.Duration",
+    "defaultValue": "10s",
+    "description": "Connection timeout for image requests, between 1ms and 2147483647ms."
+  },
+  {
+    "name": "gemini.image.read-timeout",
+    "type": "java.time.Duration",
+    "defaultValue": "120s",
+    "description": "Read timeout for image requests, between 1ms and 2147483647ms."
   }
 ]}

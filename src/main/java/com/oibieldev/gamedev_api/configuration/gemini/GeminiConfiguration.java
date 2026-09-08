@@ -1,4 +1,4 @@
-package com.oibieldev.gamedev_api.configuration;
+package com.oibieldev.gamedev_api.configuration.gemini;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
