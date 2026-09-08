@@ -1,4 +1,4 @@
-package com.oibieldev.gamedev_api.configuration;
+package com.oibieldev.gamedev_api.configuration.gemini.image;
 
 import java.time.Duration;
 

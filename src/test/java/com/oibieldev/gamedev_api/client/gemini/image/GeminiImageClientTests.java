@@ -1,20 +1,12 @@
-package com.oibieldev.gamedev_api.client.gemini;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
+package com.oibieldev.gamedev_api.client.gemini.image;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.http.HttpTimeoutException;
 import java.util.stream.Stream;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +17,13 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 import org.springframework.web.client.RestClient;
 
 import com.oibieldev.gamedev_api.dto.image.GeneratedImage;

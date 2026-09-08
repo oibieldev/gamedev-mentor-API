@@ -455,7 +455,7 @@ flowchart LR
 | `ImageGenerationService` | Validate and normalize the prompt, call the provider once, reject empty results. |
 | `ImageGenerationClient` | Define the provider-independent image-generation contract. |
 | `GeminiImageClient` | Map requests to Gemini, extract final image parts, validate MIME/Base64, normalize upstream failures. |
-| `ImageGenerationConfiguration` | Select the provider and configure a dedicated HTTP client and timeouts. |
+| `GeminiImageGenerationConfiguration` | Select the Gemini provider and configure a dedicated HTTP client and timeouts. |
 | `ImageGenerationExceptionHandler` | Map image errors to stable HTTP responses; generic input errors are handled only for the method receiving `ImageGenerationRequest`, preserving chat error handling. |
 
 ```java

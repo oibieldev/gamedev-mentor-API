@@ -1,29 +1,28 @@
 package com.oibieldev.gamedev_api.controller;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 import java.util.List;
 import java.util.stream.Stream;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.oibieldev.gamedev_api.client.ImageGenerationClient;
@@ -33,6 +32,7 @@ import com.oibieldev.gamedev_api.dto.image.ImageProviderDiagnostics;
 import com.oibieldev.gamedev_api.dto.image.ImageProviderDiagnostics.QuotaViolation;
 import com.oibieldev.gamedev_api.exception.ImageGenerationException;
 import com.oibieldev.gamedev_api.exception.ImageGenerationException.Reason;
+import com.oibieldev.gamedev_api.exception.ImageGenerationExceptionHandler;
 import com.oibieldev.gamedev_api.service.ImageGenerationService;
 import com.oibieldev.gamedev_api.service.MentorService;
 

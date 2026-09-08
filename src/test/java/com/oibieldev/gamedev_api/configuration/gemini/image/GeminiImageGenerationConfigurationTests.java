@@ -1,10 +1,9 @@
-package com.oibieldev.gamedev_api.configuration;
-
-import static org.assertj.core.api.Assertions.assertThat;
+package com.oibieldev.gamedev_api.configuration.gemini.image;
 
 import java.time.Duration;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -16,15 +15,16 @@ import org.springframework.web.client.RestClient;
 
 import com.oibieldev.gamedev_api.client.ImageGenerationClient;
 import com.oibieldev.gamedev_api.client.TextGenerationClient;
-import com.oibieldev.gamedev_api.client.gemini.GeminiImageClient;
 import com.oibieldev.gamedev_api.client.gemini.GeminiTextClient;
+import com.oibieldev.gamedev_api.client.gemini.image.GeminiImageClient;
+import com.oibieldev.gamedev_api.configuration.gemini.GeminiConfiguration;
 import com.oibieldev.gamedev_api.dto.image.GeneratedImage;
 import com.oibieldev.gamedev_api.dto.image.ImageGenerationResponse;
 
-class ImageGenerationConfigurationTests {
+class GeminiImageGenerationConfigurationTests {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withUserConfiguration(ImageGenerationConfiguration.class)
+            .withUserConfiguration(GeminiImageGenerationConfiguration.class)
             .withPropertyValues(
                     "gemini.api.base-url=https://example.test",
                     "gemini.api.key=synthetic-test-key"

@@ -1,4 +1,4 @@
-package com.oibieldev.gamedev_api.configuration;
+package com.oibieldev.gamedev_api.configuration.gemini.image;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -11,11 +11,11 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 import com.oibieldev.gamedev_api.client.ImageGenerationClient;
-import com.oibieldev.gamedev_api.client.gemini.GeminiImageClient;
+import com.oibieldev.gamedev_api.client.gemini.image.GeminiImageClient;
 
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(GeminiImageProperties.class)
-public class ImageGenerationConfiguration {
+public class GeminiImageGenerationConfiguration {
 
     @Bean
     @ConditionalOnProperty(name = "image.generation.provider", havingValue = "gemini", matchIfMissing = true)

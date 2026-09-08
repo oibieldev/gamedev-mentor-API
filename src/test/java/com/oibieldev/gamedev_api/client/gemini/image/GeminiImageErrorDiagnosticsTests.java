@@ -1,13 +1,10 @@
-package com.oibieldev.gamedev_api.client.gemini;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
+package com.oibieldev.gamedev_api.client.gemini.image;
 
 import java.util.stream.Stream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.AfterEach;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,12 +12,14 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import org.springframework.test.web.client.response.DefaultResponseCreator;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import org.springframework.web.client.RestClient;
 
 import com.oibieldev.gamedev_api.dto.image.ImageProviderDiagnostics.QuotaViolation;

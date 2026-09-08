@@ -1,4 +1,4 @@
-package com.oibieldev.gamedev_api.client.gemini;
+package com.oibieldev.gamedev_api.client.gemini.image;
 
 import java.net.SocketTimeoutException;
 import java.net.http.HttpTimeoutException;
