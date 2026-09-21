@@ -37,7 +37,8 @@ public class MentorController {
         @RequestPart("prompt") String _prompt,
         @RequestPart(value = "file", required = false) MultipartFile _file
     ) {
-        
+        _studentId = _studentId.strip();
+
         if(_studentId.isBlank()
             || _studentId.length() > 100){
             return ResponseEntity
@@ -62,7 +63,8 @@ public class MentorController {
     public ResponseEntity<ImageGenerationResponse> generateImages(
         @RequestBody ImageGenerationRequest _request,
         @RequestHeader("X-Student-Id") String _studentId                    
-    ) {
+    ) { 
+        _studentId = _studentId.strip();
 
         if(_studentId.isBlank()
             || _studentId.length() > 100){
