@@ -33,12 +33,18 @@ public class MentorController {
 
     @PostMapping("/chat")
     public ResponseEntity<MentorResponse> chat(
-            @RequestHeader("X-Student-Id") String _studentId,
-            @RequestPart("prompt") String _prompt,
-            @RequestPart(value = "file", required = false) MultipartFile _file) {
+        @RequestHeader("X-Student-Id") String _studentId,
+        @RequestPart("prompt") String _prompt,
+        @RequestPart(value = "file", required = false) MultipartFile _file
+    ) {
+        
+        if(_studentId.isBlank()){
+            return ResponseEntity
+                .badRequest()
+                .body(new MentorResponse("Informe o student ID: "));
+        }
 
         boolean allowed = dailyUsageService.tryConsumeUsage(_studentId);
-
         if (!allowed) {
             return ResponseEntity
                     .status(429)
@@ -56,8 +62,14 @@ public class MentorController {
         @RequestBody ImageGenerationRequest _request,
         @RequestHeader("X-Student-Id") String _studentId                    
     ) {
-        boolean allowed = dailyUsageService.tryConsumeUsage(_studentId);
 
+        if(_studentId.isBlank()){
+            return ResponseEntity
+                .badRequest()
+                .build();
+        }
+
+        boolean allowed = dailyUsageService.tryConsumeUsage(_studentId);
         if(!allowed){
             return ResponseEntity
                 .status(429)
