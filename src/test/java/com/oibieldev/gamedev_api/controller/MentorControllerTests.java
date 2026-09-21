@@ -31,17 +31,21 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.oibieldev.gamedev_api.client.TextGenerationClient;
 import com.oibieldev.gamedev_api.exception.ImageGenerationExceptionHandler;
-import com.oibieldev.gamedev_api.service.ImageGenerationService;
 import com.oibieldev.gamedev_api.service.MentorService;
-import com.oibieldev.gamedev_api.service.ProjectInterpreterService;
+import com.oibieldev.gamedev_api.service.database.DailyUsageService;
+import com.oibieldev.gamedev_api.service.generation.ImageGenerationService;
+import com.oibieldev.gamedev_api.service.interpreters.ProjectInterpreterService;
 
 import jakarta.servlet.ServletException;
 
 class MentorControllerTests {
 
+    private static final String STUDENT_ID = "student-test";
+
     private TextGenerationClient textClient;
     private ProjectInterpreterService interpreter;
     private ImageGenerationService imageService;
+    private DailyUsageService dailyUsageService;
     private MockMvc mvc;
 
     @BeforeEach
@@ -49,7 +53,10 @@ class MentorControllerTests {
         textClient = mock(TextGenerationClient.class);
         interpreter = mock(ProjectInterpreterService.class);
         imageService = mock(ImageGenerationService.class);
-        mvc = MockMvcBuilders.standaloneSetup(new MentorController(new MentorService(textClient, interpreter), imageService))
+        dailyUsageService = mock(DailyUsageService.class);
+        when(dailyUsageService.tryConsumeUsage(STUDENT_ID)).thenReturn(true);
+        mvc = MockMvcBuilders.standaloneSetup(new MentorController(
+                        new MentorService(textClient, interpreter), imageService, dailyUsageService))
                 .setControllerAdvice(new ImageGenerationExceptionHandler())
                 .build();
     }
@@ -63,7 +70,7 @@ class MentorControllerTests {
     void preservesChatWithoutProjectFile() throws Exception {
         when(textClient.generateResponse(anyString())).thenReturn("Como seu personagem detecta o chão?");
 
-        mvc.perform(multipart("/api/chat").file(promptPart()))
+        mvc.perform(multipart("/api/chat").header("X-Student-Id", STUDENT_ID).file(promptPart()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.answer").value("Como seu personagem detecta o chão?"))
                 .andExpect(jsonPath("$.images").doesNotExist());
@@ -75,6 +82,8 @@ class MentorControllerTests {
         assertFalse(prompt.getValue().contains("EM JSON DO ALUNO"));
         verifyNoInteractions(interpreter);
         verifyNoMoreInteractions(textClient);
+        verify(dailyUsageService).tryConsumeUsage(STUDENT_ID);
+        verifyNoMoreInteractions(dailyUsageService);
     }
 
     @Test
@@ -84,7 +93,7 @@ class MentorControllerTests {
         when(interpreter.extractProjectJson(project)).thenReturn("{\"targets\":[\"player\"]}");
         when(textClient.generateResponse(anyString())).thenReturn("Qual bloco controla a velocidade vertical?");
 
-        mvc.perform(multipart("/api/chat").file(promptPart()).file(project))
+        mvc.perform(multipart("/api/chat").header("X-Student-Id", STUDENT_ID).file(promptPart()).file(project))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.answer").value("Qual bloco controla a velocidade vertical?"));
 
@@ -103,7 +112,7 @@ class MentorControllerTests {
         MockMultipartFile emptyProject = new MockMultipartFile("file", "vazio.sb3",
                 MediaType.APPLICATION_OCTET_STREAM_VALUE, new byte[0]);
 
-        mvc.perform(multipart("/api/chat").file(promptPart()).file(emptyProject))
+        mvc.perform(multipart("/api/chat").header("X-Student-Id", STUDENT_ID).file(promptPart()).file(emptyProject))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.answer").value("O que você já tentou?"));
 
@@ -114,8 +123,31 @@ class MentorControllerTests {
 
     @Test
     void missingPromptStillReturnsBadRequest() throws Exception {
-        mvc.perform(multipart("/api/chat")).andExpect(status().isBadRequest());
+        mvc.perform(multipart("/api/chat").header("X-Student-Id", STUDENT_ID))
+                .andExpect(status().isBadRequest());
 
+        verifyNoInteractions(textClient, interpreter, dailyUsageService);
+    }
+
+    @Test
+    void missingStudentIdReturnsBadRequestWithoutConsumingQuota() throws Exception {
+        mvc.perform(multipart("/api/chat").file(promptPart()))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(textClient, interpreter, dailyUsageService);
+    }
+
+    @Test
+    void exhaustedQuotaRejectsChatWithoutCallingProvider() throws Exception {
+        when(dailyUsageService.tryConsumeUsage(STUDENT_ID)).thenReturn(false);
+
+        mvc.perform(multipart("/api/chat").header("X-Student-Id", STUDENT_ID).file(promptPart()))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.answer").isNotEmpty())
+                .andExpect(jsonPath("$.images").doesNotExist());
+
+        verify(dailyUsageService).tryConsumeUsage(STUDENT_ID);
+        verifyNoMoreInteractions(dailyUsageService);
         verifyNoInteractions(textClient, interpreter);
     }
 
@@ -127,7 +159,8 @@ class MentorControllerTests {
         when(interpreter.extractProjectJson(project)).thenThrow(failure);
 
         ServletException exception = assertThrows(ServletException.class,
-                () -> mvc.perform(multipart("/api/chat").file(promptPart()).file(project)));
+                () -> mvc.perform(multipart("/api/chat").header("X-Student-Id", STUDENT_ID)
+                        .file(promptPart()).file(project)));
 
         assertSame(failure, exception.getCause());
         verify(interpreter).extractProjectJson(project);
@@ -141,7 +174,7 @@ class MentorControllerTests {
                 "Mensagem de chat inválida.", new MockHttpInputMessage(new byte[0]));
         when(textClient.generateResponse(anyString())).thenThrow(failure);
 
-        mvc.perform(multipart("/api/chat").file(promptPart()))
+        mvc.perform(multipart("/api/chat").header("X-Student-Id", STUDENT_ID).file(promptPart()))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(not(containsString("INVALID_IMAGE_REQUEST"))))
                 .andExpect(result -> assertSame(failure, result.getResolvedException()));

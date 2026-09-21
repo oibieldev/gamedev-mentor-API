@@ -1,4 +1,4 @@
-package com.oibieldev.gamedev_api.service;
+package com.oibieldev.gamedev_api.service.generation;
 
 import org.springframework.stereotype.Service;
 

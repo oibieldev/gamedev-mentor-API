@@ -1,11 +1,9 @@
-package com.oibieldev.gamedev_api.service;
+package com.oibieldev.gamedev_api.service.interpreters;
 
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
-import com.oibieldev.gamedev_api.service.interpreters.ProjectInterpreter;
 
 import lombok.RequiredArgsConstructor;
 
