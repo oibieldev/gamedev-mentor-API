@@ -38,10 +38,11 @@ public class MentorController {
         @RequestPart(value = "file", required = false) MultipartFile _file
     ) {
         
-        if(_studentId.isBlank()){
+        if(_studentId.isBlank()
+            || _studentId.length() > 100){
             return ResponseEntity
                 .badRequest()
-                .body(new MentorResponse("Informe o student ID: "));
+                .body(new MentorResponse("ID INVÁLIDO"));
         }
 
         boolean allowed = dailyUsageService.tryConsumeUsage(_studentId);
@@ -63,7 +64,8 @@ public class MentorController {
         @RequestHeader("X-Student-Id") String _studentId                    
     ) {
 
-        if(_studentId.isBlank()){
+        if(_studentId.isBlank()
+            || _studentId.length() > 100){
             return ResponseEntity
                 .badRequest()
                 .build();
