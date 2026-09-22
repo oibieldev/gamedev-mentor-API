@@ -17,6 +17,7 @@ import com.oibieldev.gamedev_api.dto.image.ImageGenerationResponse;
 import com.oibieldev.gamedev_api.dto.mentor.MentorResponse;
 import com.oibieldev.gamedev_api.service.MentorService;
 import com.oibieldev.gamedev_api.service.database.DailyUsageService;
+import com.oibieldev.gamedev_api.service.database.StudentInteractionService;
 import com.oibieldev.gamedev_api.service.generation.ImageGenerationService;
 
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class MentorController {
     private final MentorService service;
     private final ImageGenerationService imageService;
     private final DailyUsageService dailyUsageService;
+    private final StudentInteractionService studentInteractionService;
 
     @PostMapping("/chat")
     public ResponseEntity<MentorResponse> chat(
@@ -53,21 +55,36 @@ public class MentorController {
                     .body(new MentorResponse("Limite diário de uso atingido."));
         }
 
-        try{
-            String answer = service.getMentorResponse(_prompt, _file);
-            MentorResponse response = new MentorResponse(answer);
-    
-            return ResponseEntity.ok(response);
+        String answer;
+        try{    
+            answer = service.getMentorResponse(_prompt, _file);
 
         }catch(RuntimeException _exception){
-            
+
             dailyUsageService.refundUsage(_studentId);
             throw _exception;
         }
 
+        try{
+            studentInteractionService.saveInteraction(
+                _studentId,
+                "CHAT",
+                _prompt,
+                answer
+            );
+        }catch(RuntimeException _exception){
+            System.out.println("Erro ao salvar interação do aluno: " + _exception.getMessage());
+        }
+
+        MentorResponse response = new MentorResponse(answer);
+        return ResponseEntity.ok(response);
+
     }
 
-    @PostMapping(value = "/images", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(
+        value = "/images",
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ImageGenerationResponse> generateImages(
         @RequestBody ImageGenerationRequest _request,
         @RequestHeader("X-Student-Id") String _studentId                    
@@ -88,15 +105,32 @@ public class MentorController {
                 .build();
         }
 
+
+        ImageGenerationResponse response;
         try {
-            return ResponseEntity.ok()
-                    .cacheControl(CacheControl.noStore())
-                    .body(imageService.generateImages(_request));
+            response = imageService.generateImages(_request);
 
         } catch (RuntimeException _exception) {
 
             dailyUsageService.refundUsage(_studentId);
             throw _exception;
         }
+
+        try{
+            studentInteractionService.saveInteraction(
+                _studentId,
+                "IMAGE",
+                _request.prompt(),
+                null
+            );
+
+        }catch(RuntimeException _exception){
+            System.out.println("Erro ao salvar interação do aluno: " + _exception.getMessage());
+        }
+
+        return ResponseEntity
+            .ok()
+            .cacheControl(CacheControl.noStore())
+            .body(response);
     }
 }
