@@ -38,6 +38,23 @@ public class DailyUsageRepository {
             );
     }
 
+    public boolean refundUsage(String _studentId){
+        int rows = jdbcTemplate.update(
+            """
+                UPDATE daily_usage
+                SET used_count = used_count - 1
+                WHERE student_external_id = ? 
+                    AND usage_date = ? 
+                    AND used_count > 0        
+
+            """,
+            _studentId,
+            LocalDate.now()
+        );
+        
+        return rows > 0;
+    }
+
     public boolean tryUsage(String _studentId) {
         return !this.getUsage(_studentId).isEmpty();
     }

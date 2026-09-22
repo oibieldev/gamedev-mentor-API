@@ -11,8 +11,6 @@ public class DailyUsageService {
 
     public DailyUsageService(DailyUsageRepository _usageRepository){ this.usageRepository = _usageRepository; }
 
-    public boolean tryConsumeUsage(String _studentId) {
-
-        return usageRepository.tryUsage(_studentId);
-    }
+    public boolean tryConsumeUsage(String _studentId) { return usageRepository.tryUsage(_studentId); }
+    public boolean refundUsage(String _studentId) { return usageRepository.refundUsage(_studentId); }
 }

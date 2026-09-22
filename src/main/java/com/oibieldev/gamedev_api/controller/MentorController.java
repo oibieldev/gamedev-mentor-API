@@ -53,10 +53,18 @@ public class MentorController {
                     .body(new MentorResponse("Limite diário de uso atingido."));
         }
 
-        String answer = service.getMentorResponse(_prompt, _file);
-        MentorResponse response = new MentorResponse(answer);
+        try{
+            String answer = service.getMentorResponse(_prompt, _file);
+            MentorResponse response = new MentorResponse(answer);
+    
+            return ResponseEntity.ok(response);
 
-        return ResponseEntity.ok(response);
+        }catch(RuntimeException _exception){
+            
+            dailyUsageService.refundUsage(_studentId);
+            throw _exception;
+        }
+
     }
 
     @PostMapping(value = "/images", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -80,8 +88,15 @@ public class MentorController {
                 .build();
         }
 
-        return ResponseEntity.ok()
-                .cacheControl(CacheControl.noStore())
-                .body(imageService.generateImages(_request));
+        try {
+            return ResponseEntity.ok()
+                    .cacheControl(CacheControl.noStore())
+                    .body(imageService.generateImages(_request));
+
+        } catch (RuntimeException _exception) {
+
+            dailyUsageService.refundUsage(_studentId);
+            throw _exception;
+        }
     }
 }

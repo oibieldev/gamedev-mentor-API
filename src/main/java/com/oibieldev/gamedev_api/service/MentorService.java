@@ -15,8 +15,8 @@ public class MentorService {
     private final ProjectInterpreterService projectInterpreterService;
 
     public String getMentorResponse(String _prompt, MultipartFile _file){
-        String tempPrompt = 
-                """
+        String tempPrompt = _prompt;
+                /*"""
                 Atue como um mentor, analisando a pergunta do aluno e o projeto dele.
                 Estimule a criatividade do aluno e ajude-o a descobrir a resposta.
                 Não entregue a solução pronta. Gere perguntas pedagógicas que o
@@ -25,7 +25,7 @@ public class MentorService {
                 PERGUNTA DO ALUNO:
 
                 %s
-                """.formatted(_prompt);
+                """.formatted(_prompt);*/
 
         if(_file == null || _file.isEmpty()) return textClient.generateResponse(tempPrompt) ;
         
