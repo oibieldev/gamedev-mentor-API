@@ -1,6 +1,7 @@
 package com.oibieldev.gamedev_api.repository;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class DailyUsageRepository {
     private final JdbcTemplate jdbcTemplate;
+    private static final ZoneId BRAZIL_ZONE = ZoneId.of("America/Sao_Paulo");
 
     public DailyUsageRepository(JdbcTemplate _JdbcTemplate){
         this.jdbcTemplate = _JdbcTemplate;
@@ -16,6 +18,7 @@ public class DailyUsageRepository {
 
     public List<Integer> getUsage(String _studentId){
         
+        LocalDate today = LocalDate.now(BRAZIL_ZONE);
         return jdbcTemplate.query(
                     """
                     INSERT INTO daily_usage (
@@ -34,11 +37,13 @@ public class DailyUsageRepository {
                     """,
                     (_responsesSet, _rowNum) -> _responsesSet.getInt("used_count"),
                     _studentId,
-                    LocalDate.now()
+                    today
             );
     }
 
     public boolean refundUsage(String _studentId){
+
+        LocalDate today = LocalDate.now(BRAZIL_ZONE);
         int rows = jdbcTemplate.update(
             """
                 UPDATE daily_usage
@@ -49,9 +54,9 @@ public class DailyUsageRepository {
 
             """,
             _studentId,
-            LocalDate.now()
+            today
         );
-        
+
         return rows > 0;
     }
 
