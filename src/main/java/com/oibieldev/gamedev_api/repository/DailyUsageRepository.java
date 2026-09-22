@@ -16,7 +16,7 @@ public class DailyUsageRepository {
         this.jdbcTemplate = _JdbcTemplate;
     }
 
-    public List<Integer> getUsage(String _studentId){
+    public List<Integer> getUsage(String _studentId, int _dailyLimit) {
         
         LocalDate today = LocalDate.now(BRAZIL_ZONE);
         return jdbcTemplate.query(
@@ -31,13 +31,14 @@ public class DailyUsageRepository {
                     ON CONFLICT (student_external_id, usage_date)
                     DO UPDATE SET
                         used_count = daily_usage.used_count + 1
-                    WHERE daily_usage.used_count < 15
+                    WHERE daily_usage.used_count < ?
     
                     RETURNING used_count
                     """,
-                    (_responsesSet, _rowNum) -> _responsesSet.getInt("used_count"),
+                    (_resultSet, _rowNum) -> _resultSet.getInt("used_count"),
                     _studentId,
-                    today
+                    today,
+                    _dailyLimit
             );
     }
 
@@ -60,8 +61,28 @@ public class DailyUsageRepository {
         return rows > 0;
     }
 
-    public boolean tryUsage(String _studentId) {
-        return !this.getUsage(_studentId).isEmpty();
+    public boolean tryUsage(String _studentId, int _dailyLimit) {
+        return !this.getUsage(_studentId, _dailyLimit).isEmpty();
+    }
+
+    public int getUsageCount(String _studentId) {
+        LocalDate today = LocalDate.now(BRAZIL_ZONE);
+        List<Integer> result = jdbcTemplate.query(
+            """
+                SELECT used_count
+                FROM daily_usage
+                WHERE 
+                    student_external_id = ? 
+                    AND usage_date = ?
+            """,
+            (_resultSet, _rowNum) -> _resultSet.getInt("used_count"),
+            _studentId,
+            today);
+
+        if(result.isEmpty()){
+            return 0;
+        }
+        return result.get(0);
     }
 
 }

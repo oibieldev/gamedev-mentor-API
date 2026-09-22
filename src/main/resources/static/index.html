@@ -810,6 +810,7 @@
               <select class="mode-select" id="generation-mode" name="mode">
                 <option value="chat">Conversar com o mentor</option>
                 <option value="image">Gerar imagens</option>
+                <option value="usage">Consultar uso diário</option>
               </select>
             </div>
             <div class="field">
@@ -820,13 +821,14 @@
                 class="api-input"
                 id="student-id"
                 type="text"
+                maxlength="100"
                 autocomplete="off"
                 spellcheck="false"
                 required
                 placeholder="Digite o Student ID"
               >
             </div>
-            <div class="field">
+            <div class="field" id="prompt-field">
               <div class="label-row">
                 <label class="field-label" id="prompt-label" for="prompt">O que você quer investigar?</label>
                 <span class="counter"><span id="prompt-count">0</span>/<span id="prompt-limit">2000</span></span>
@@ -920,6 +922,7 @@
     const MODES = {
       chat: {
         endpoint: "/api/chat",
+        method: "POST",
         storageKey: "gamedev-mentor-api-url",
         limit: 2000,
         timeout: 90000,
@@ -931,6 +934,7 @@
       },
       image: {
         endpoint: "/api/images",
+        method: "POST",
         storageKey: "gamedev-mentor-image-api-url",
         limit: 4000,
         timeout: 150000,
@@ -939,6 +943,15 @@
         placeholder: "Ex.: Crie um cenário de floresta em pixel art para um jogo de plataforma, com árvores altas, luz suave e cores vibrantes.",
         button: "Gerar imagens",
         loading: "Gerando imagens..."
+      },
+      usage: {
+        endpoint: "/api/usage",
+        method: "GET",
+        storageKey: "gamedev-mentor-usage-api-url",
+        timeout: 30000,
+        title: "Consulta de uso diário",
+        button: "Consultar uso diário",
+        loading: "Consultando uso..."
       }
     };
     const IMAGE_TYPES = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
@@ -952,6 +965,7 @@
     const studentIdInput = document.querySelector("#student-id");
     const panelTitle = document.querySelector("#panel-title");
     const endpointLabel = document.querySelector("#endpoint-label");
+    const promptField = document.querySelector("#prompt-field");
     const promptLabel = document.querySelector("#prompt-label");
     const promptLimit = document.querySelector("#prompt-limit");
     const projectField = document.querySelector("#project-field");
@@ -973,8 +987,8 @@
     const imageGallery = document.querySelector("#image-gallery");
     const apiHint = document.querySelector("#api-hint");
     let activeMode = "chat";
-    const drafts = { chat: "", image: "" };
-    const apiUrls = { chat: readApiUrl("chat"), image: readApiUrl("image") };
+    const drafts = { chat: "", image: "", usage: "" };
+    const apiUrls = { chat: readApiUrl("chat"), image: readApiUrl("image"), usage: readApiUrl("usage") };
 
     updateMode();
 
@@ -996,21 +1010,27 @@
 
     function updateMode() {
       const mode = MODES[activeMode];
+      const isUsage = activeMode === "usage";
       modeInput.value = activeMode;
       panelTitle.textContent = mode.title;
-      endpointLabel.textContent = `POST ${mode.endpoint}`;
-      promptLabel.textContent = mode.label;
-      promptInput.placeholder = mode.placeholder;
-      promptInput.maxLength = mode.limit;
-      promptLimit.textContent = mode.limit;
+      endpointLabel.textContent = `${mode.method} ${mode.endpoint}`;
+      promptField.hidden = isUsage;
+      promptInput.disabled = isUsage;
+      promptInput.required = !isUsage;
+      if (!isUsage) {
+        promptLabel.textContent = mode.label;
+        promptInput.placeholder = mode.placeholder;
+        promptInput.maxLength = mode.limit;
+        promptLimit.textContent = mode.limit;
+      }
       promptInput.value = drafts[activeMode];
       promptCount.textContent = promptInput.value.length;
-      projectField.hidden = activeMode === "image";
-      fileInput.disabled = activeMode === "image";
+      projectField.hidden = activeMode !== "chat";
+      fileInput.disabled = activeMode !== "chat";
       apiUrlInput.value = apiUrls[activeMode];
       apiHint.textContent = `Se esta página estiver dentro do Spring Boot, use ${mode.endpoint}.`;
       submitLabel.textContent = mode.button;
-      answerTitle.textContent = activeMode === "image" ? "Imagens geradas" : "Resposta do mentor";
+      answerTitle.textContent = isUsage ? "Uso diário do aluno" : activeMode === "image" ? "Imagens geradas" : "Resposta do mentor";
       clearResult();
       clearError();
     }
@@ -1068,14 +1088,16 @@
 
       const mode = MODES[activeMode];
       const isImage = activeMode === "image";
+      const isUsage = activeMode === "usage";
       const studentId = studentIdInput.value.trim();
       const prompt = promptInput.value.trim();
-      const projectFile = isImage ? null : fileInput.files[0];
+      const projectFile = activeMode === "chat" ? fileInput.files[0] : null;
       const apiUrl = apiUrlInput.value.trim();
 
       if (!studentId) return showError("Informe o Student ID");
-      if (!prompt) return showError(isImage ? "Descreva a imagem que você quer criar." : "Escreva uma pergunta para o mentor.");
-      if (promptInput.value.length > mode.limit) return showError(`Use no máximo ${mode.limit} caracteres.`);
+      if (studentId.length > 100) return showError("O Student ID deve ter no máximo 100 caracteres.");
+      if (!isUsage && !prompt) return showError(isImage ? "Descreva a imagem que você quer criar." : "Escreva uma pergunta para o mentor.");
+      if (!isUsage && promptInput.value.length > mode.limit) return showError(`Use no máximo ${mode.limit} caracteres.`);
       if (projectFile && !getProjectType(projectFile)) return showError("O arquivo precisa ter a extensão .sb3, .c3p ou .yyz.");
       if (projectFile && projectFile.size > MAX_FILE_SIZE) return showError("O arquivo deve ter no máximo 10 MB.");
       if (!apiUrl) return showError("Informe o endereço da API.");
@@ -1085,7 +1107,7 @@
       if (isImage) {
         headers["Content-Type"] = "application/json";
         body = JSON.stringify({ prompt });
-      } else {
+      } else if (!isUsage) {
         body = new FormData();
         body.append("prompt", prompt);
         if (projectFile) body.append("file", projectFile);
@@ -1098,9 +1120,10 @@
 
       try {
         const response = await fetch(apiUrl, {
-          method: "POST",
+          method: mode.method,
           headers,
           body,
+          cache: isUsage ? "no-store" : "default",
           signal: controller.signal
         });
 
@@ -1116,7 +1139,9 @@
           throw new Error(apiMessage || `A API respondeu com o status ${response.status}.`);
         }
 
-        if (isImage) {
+        if (isUsage) {
+          renderUsage(payload);
+        } else if (isImage) {
           renderImages(payload?.images);
         } else {
           const answer = payload && typeof payload === "object" ? payload.answer : payload;
@@ -1127,7 +1152,9 @@
         answerPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
       } catch (error) {
         if (error.name === "AbortError") {
-          showError(isImage
+          showError(isUsage
+            ? "A consulta demorou mais de 30 segundos. Verifique a API e tente novamente."
+            : isImage
             ? "A geração demorou mais de 150 segundos. O servidor ainda pode estar processando a imagem; aguarde antes de tentar novamente."
             : "A análise demorou mais de 90 segundos. Verifique a API e tente novamente.");
         } else if (error instanceof SyntaxError) {
@@ -1135,13 +1162,27 @@
         } else if (error instanceof TypeError) {
           showError("Não foi possível conectar à API. Confira a URL, se o servidor está ligado e a configuração de CORS.");
         } else {
-          showError(error.message || (isImage ? "Não foi possível gerar a imagem." : "Não foi possível analisar o projeto."));
+          showError(error.message || (isUsage ? "Não foi possível consultar o uso diário." : isImage ? "Não foi possível gerar a imagem." : "Não foi possível analisar o projeto."));
         }
       } finally {
         window.clearTimeout(timeout);
         setLoading(false);
       }
     });
+
+    function renderUsage(usage) {
+      const fields = { used: "Usos realizados", limit: "Limite diário", remaining: "Usos restantes" };
+      if (!usage || !Object.keys(fields).every((key) => Number.isInteger(usage[key]))) {
+        throw new Error("A API respondeu, mas não enviou os campos 'used', 'limit' e 'remaining' válidos.");
+      }
+
+      const entries = Object.entries(fields).map(([key, label]) => {
+        const paragraph = document.createElement("p");
+        paragraph.textContent = `${label}: ${usage[key]}`;
+        return paragraph;
+      });
+      answerText.replaceChildren(...entries);
+    }
 
     function renderImages(images) {
       if (!Array.isArray(images) || images.length === 0) {
@@ -1347,9 +1388,9 @@
       resetButton.disabled = isLoading;
       modeInput.disabled = isLoading;
       studentIdInput.disabled = isLoading;
-      promptInput.disabled = isLoading;
+      promptInput.disabled = isLoading || activeMode === "usage";
       apiUrlInput.disabled = isLoading;
-      fileInput.disabled = isLoading || activeMode === "image";
+      fileInput.disabled = isLoading || activeMode !== "chat";
       form.setAttribute("aria-busy", String(isLoading));
       submitButton.classList.toggle("is-loading", isLoading);
       submitLabel.textContent = isLoading ? MODES[activeMode].loading : MODES[activeMode].button;

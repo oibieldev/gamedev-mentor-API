@@ -4,6 +4,7 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -15,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.oibieldev.gamedev_api.dto.image.ImageGenerationRequest;
 import com.oibieldev.gamedev_api.dto.image.ImageGenerationResponse;
 import com.oibieldev.gamedev_api.dto.mentor.MentorResponse;
+import com.oibieldev.gamedev_api.dto.persistance.UsageResponse;
 import com.oibieldev.gamedev_api.service.MentorService;
 import com.oibieldev.gamedev_api.service.database.DailyUsageService;
 import com.oibieldev.gamedev_api.service.database.StudentInteractionService;
@@ -133,4 +135,22 @@ public class MentorController {
             .cacheControl(CacheControl.noStore())
             .body(response);
     }
+    
+    @GetMapping("/usage")
+    public ResponseEntity<?> getUsage(
+        @RequestHeader("X-Student-Id") String _studentId
+    ) {
+        _studentId = _studentId.strip();
+    
+        if(_studentId.isBlank()
+            || _studentId.length() > 100){
+            return ResponseEntity
+                .badRequest()
+                .build();
+        }
+    
+        UsageResponse usageResponse = dailyUsageService.getUsage(_studentId);
+        return ResponseEntity.ok(usageResponse);
+    }
 }
+
