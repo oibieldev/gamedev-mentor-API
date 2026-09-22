@@ -72,7 +72,8 @@ public class MentorController {
                 _studentId,
                 "CHAT",
                 _prompt,
-                answer
+                answer,
+                null
             );
         }catch(RuntimeException _exception){
             System.out.println("Erro ao salvar interação do aluno: " + _exception.getMessage());
@@ -123,7 +124,8 @@ public class MentorController {
                 _studentId,
                 "IMAGE",
                 _request.prompt(),
-                null
+                null,
+                response.images().get(0).mimeType()
             );
 
         }catch(RuntimeException _exception){

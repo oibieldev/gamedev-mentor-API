@@ -9,23 +9,38 @@ public record GeminiImageRequest(
 
     public static GeminiImageRequest fromPrompt(String _prompt) {
         return new GeminiImageRequest(
-                List.of(new Content(List.of(new Part(_prompt)))),
-                new GenerationConfig(List.of("TEXT", "IMAGE"))
+                List.of(
+                        new Content(
+                                List.of(new Part(_prompt))
+                        )
+                ),
+                new GenerationConfig(
+                        List.of("IMAGE"),
+                        new ResponseFormat(
+                                new ImageResponseFormat("IMAGE_JPEG")
+                        )
+                )
         );
     }
 
     public record Content(
         List<Part> parts
-    ) {
-    }
+    ) { }
 
     public record Part(
         String text
-    ) {
-    }
+    ) { }
 
     public record GenerationConfig(
-        List<String> responseModalities
-    ) {
-    }
+        List<String> responseModalities,
+        ResponseFormat responseFormat
+    ) { }
+
+    public record ResponseFormat(
+        ImageResponseFormat image
+    ) { }
+
+    public record ImageResponseFormat(
+        String mimeType
+    ) { }
 }

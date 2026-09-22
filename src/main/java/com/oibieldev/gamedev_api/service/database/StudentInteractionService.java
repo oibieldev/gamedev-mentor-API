@@ -16,13 +16,15 @@ public class StudentInteractionService {
         String _studentId,
         String _interactionType,
         String _prompt,
-        String _response) {
+        String _response,
+        String _mimeType) {
 
             return studentInteractionRepository.saveInteracion(
                 _studentId,
                 _interactionType,
                 _prompt,
-                _response
+                _response,
+                _mimeType
             );
         }
     

@@ -15,7 +15,8 @@ public class StudentInteractionRepository {
         String _studentId,
         String _interactionType,
         String _prompt,
-        String _response) {
+        String _response,
+        String _mimeType) {
 
             int rows = jdbcTemplate.update(
                 """
@@ -23,14 +24,16 @@ public class StudentInteractionRepository {
                     student_external_id,
                     interaction_type,
                     prompt,
-                    response
+                    response,
+                    mime_type
                 )
-                VALUES (?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?)
                 """,
                 _studentId,
                 _interactionType,
                 _prompt,
-                _response
+                _response,
+                _mimeType
             );
 
             return rows > 0;
